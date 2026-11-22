@@ -7,8 +7,22 @@ import { renderBarChart, renderDonutMetric } from '../components/charts.js';
 import { getGDriveState } from '../core/gdrive.js';
 
 function renderGDriveQuotaCard(gdrive) {
+  const devNotice = `
+    <div class="card" style="border:1px solid rgba(245, 158, 11, 0.35);background:rgba(245, 158, 11, 0.06);padding:12px 14px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px;">
+      <span style="font-size:1.3rem;line-height:1;">💡</span>
+      <div style="font-size:0.8rem;line-height:1.5;">
+        <strong style="color:#F59E0B;">Lưu ý cách dùng đơn giản nhất cho Giáo viên:</strong>
+        Bạn <strong>chỉ cần tải video lên Google Drive</strong> cá nhân $\rightarrow$ Chuột phải chọn <em>"Chia sẻ" (Ai có liên kết đều xem được)</em> $\rightarrow$ <em>Sao chép link</em> dán vào bài giảng là phát được ngay!
+        <div class="muted" style="margin-top:2px;font-size:0.75rem;">
+          ⚙️ <em>Phần kết nối Google Drive API bên dưới là <strong>tùy chọn nâng cao dành cho Developer / Quản trị viên</strong> có hiểu biết kỹ thuật.</em>
+        </div>
+      </div>
+    </div>
+  `;
+
   if (!gdrive.isConnected || !gdrive.quota) {
     return `
+      ${devNotice}
       <div class="card" style="border:1px solid rgba(10,132,255,0.2);background:linear-gradient(135deg, rgba(10,132,255,0.05), rgba(48,209,88,0.03));padding:16px 20px;">
         <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
           <div style="display:flex;align-items:center;gap:12px;">
@@ -18,15 +32,15 @@ function renderGDriveQuotaCard(gdrive) {
             <div>
               <div style="font-weight:700;font-size:1.02rem;display:flex;align-items:center;gap:8px;">
                 Kho Lưu Trữ Google Drive
-                <span class="pill pill-warning" style="font-size:0.75rem;">● Chưa kết nối</span>
+                <span class="pill pill-warning" style="font-size:0.75rem;">● Tùy chọn Dev</span>
               </div>
               <div class="muted" style="font-size:0.82rem;margin-top:2px;">
-                Hỗ trợ tài khoản 15 GB miễn phí, Google One và Google Workspace.
+                Kết nối tự động duyệt tệp (Dành cho Developer / Admin hiểu biết Google Cloud).
               </div>
             </div>
           </div>
           <button class="btn btn-secondary btn-sm" data-gdrive-nav style="gap:6px;">
-            🔗 Liên kết tài khoản Google Drive
+            ⚙ Cấu hình nâng cao (Dev)
           </button>
         </div>
       </div>
@@ -35,6 +49,7 @@ function renderGDriveQuotaCard(gdrive) {
 
   const q = gdrive.quota;
   return `
+    ${devNotice}
     <div class="card" style="border:1px solid rgba(10,132,255,0.25);background:linear-gradient(135deg, rgba(10,132,255,0.06), rgba(48,209,88,0.04));padding:16px 20px;">
       <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
         <div style="display:flex;align-items:center;gap:12px;">
@@ -90,7 +105,22 @@ export async function renderDashboardPage(container, navigate) {
             <button class="btn btn-primary" id="dash-go-classes">Tham gia lớp học</button>
           </div>
 
-          ${renderGDriveQuotaCard(gdrive)}
+          <div class="card" style="background:linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.05));border:1px solid rgba(99,102,241,0.2);padding:16px 20px;">
+            <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
+              <div style="display:flex;align-items:center;gap:14px;">
+                <div style="font-size:32px;line-height:1;">💎</div>
+                <div>
+                  <div style="font-weight:700;font-size:1.05rem;">Góc Học Tập Tích Lũy Gems</div>
+                  <div class="muted" style="font-size:0.82rem;margin-top:2px;">
+                    Xem trọn vẹn video nhận ngay <strong>+10 Gems</strong> và trả lời đúng mỗi câu hỏi dừng hình nhận <strong>+2 Gems</strong>!
+                  </div>
+                </div>
+              </div>
+              <div class="gem-badge" style="font-size:0.95rem;padding:6px 14px;">
+                <span>💎 ${state.user.gem_balance || 0} Gems</span>
+              </div>
+            </div>
+          </div>
 
           <div class="grid-kpi">
             <div class="card"><div class="kpi-label">Khóa học của tôi</div><div class="kpi-value">${w.my_courses}</div></div>

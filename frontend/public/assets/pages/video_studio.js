@@ -285,10 +285,10 @@ export async function renderVideoStudioPage(container, navigate) {
     document.getElementById('btn-link-video')?.addEventListener('click', () => {
       openModal('Gắn video từ liên kết ngoài (URL / Google Drive / YouTube)', `
         <form id="link-vid-form">
-          <div class="card" style="margin-bottom:14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);padding:12px 14px;">
-            <div style="font-weight:700;font-size:0.86rem;color:var(--success);margin-bottom:6px;">💡 Hướng dẫn 3 nguồn video khuyên dùng:</div>
-            <div style="display:flex;flex-direction:column;gap:6px;font-size:0.78rem;line-height:1.45;color:var(--text-muted);">
-              <div>• <strong>📁 Google Drive:</strong> Chuột phải vào video $\rightarrow$ <em>Chia sẻ</em> $\rightarrow$ Đổi quyền thành <em>"Bất kỳ ai có đường liên kết (Xem)"</em> $\rightarrow$ Copy link dán vào đây. <em>(Hệ thống tự động kích hoạt bộ điều tiết an toàn 15–20 người xem cùng lúc để bảo vệ quota Drive).</em></div>
+          <div class="card" style="margin-bottom:14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);padding:12px 14px;">
+            <div style="font-weight:700;font-size:0.88rem;color:var(--success);margin-bottom:6px;">✨ Cách dùng nhanh nhất & không cần cài đặt kỹ thuật:</div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:0.8rem;line-height:1.5;color:var(--text);">
+              <div>• <strong>📁 Google Drive:</strong> Bạn chỉ cần tải video lên Google Drive của bạn $\rightarrow$ Chuột phải chọn <em>"Chia sẻ" (Ai có đường liên kết đều xem được)</em> $\rightarrow$ <em>Sao chép liên kết</em> và dán vào ô bên dưới là xong! <em>(Không cần tài khoản Developer hay Google Cloud gì cả).</em></div>
               <div>• <strong>🔴 YouTube:</strong> Upload lên kênh cá nhân $\rightarrow$ Chọn chế độ <em>"Không công khai (Unlisted)"</em> $\rightarrow$ Copy link YouTube dán vào đây. <em>(Xem mượt mà qua YouTube Player chính chủ).</em></div>
               <div>• <strong>🎬 Direct MP4 (GitHub Releases / Catbox):</strong> Copy link trực tiếp <code>.mp4</code> dán vào đây. <em>(Hỗ trợ 100% Anti-Skip khóa tua và dừng hình khi có câu hỏi).</em></div>
             </div>

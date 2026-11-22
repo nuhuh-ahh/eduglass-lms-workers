@@ -55,6 +55,19 @@ export async function renderGDriveExplorerPage(container, navigate, initialFolde
     const currentGdrive = getGDriveState();
     openModal('Liên kết tài khoản Google Drive (Tất cả gói: 15 GB, 100 GB, 2 TB, 5 TB)', `
       <div style="display:flex;flex-direction:column;gap:16px;max-height:75vh;overflow-y:auto;padding-right:4px;">
+        <div class="card" style="background:rgba(245, 158, 11, 0.1);border:1px solid rgba(245, 158, 11, 0.4);padding:14px;">
+          <div style="font-weight:700;font-size:0.92rem;color:#F59E0B;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+            <span>⚠️</span> CẢNH BÁO: CHỈ DÀNH CHO DEVELOPER & NGƯỜI AM HIỂU CÔNG NGHỆ
+          </div>
+          <p style="margin:0 0 8px;font-size:0.82rem;line-height:1.5;">
+            Các bước dưới đây yêu cầu thao tác kỹ thuật tại Google Cloud Console (dành cho lập trình viên/admin muốn kết nối duyệt toàn bộ thư mục).
+          </p>
+          <div style="background:rgba(0,0,0,0.2);padding:10px 14px;border-radius:8px;font-size:0.8rem;line-height:1.5;">
+            <strong style="color:var(--success);">💡 Cách đơn giản nhất cho Giáo viên & Người dùng:</strong><br/>
+            Bạn <strong>chỉ cần tải video lên Google Drive</strong> cá nhân $\rightarrow$ Chuột phải chọn <em>"Chia sẻ" (Ai có liên kết đều xem được)</em> $\rightarrow$ <em>Sao chép liên kết</em> $\rightarrow$ Sang <strong>Video Studio</strong> dán link vào là bài giảng tự động phát mượt mà! <strong>Hoàn toàn không cần làm các bước cài đặt API phức tạp!</strong>
+          </div>
+        </div>
+
         <div class="card" style="background:rgba(10,132,255,0.08);border:1px solid rgba(10,132,255,0.25);padding:14px;">
           <div style="font-weight:700;font-size:0.92rem;color:var(--primary);margin-bottom:4px;">
             🎉 Tiết kiệm 100% cước băng thông — Phát trực tiếp từ CDN Google
@@ -272,6 +285,25 @@ export async function renderGDriveExplorerPage(container, navigate, initialFolde
 
     container.innerHTML = `
       <div class="page-enter" style="display:flex;flex-direction:column;gap:20px;">
+        <!-- Developer & Technical Warning Banner -->
+        <div class="card" style="border:1px solid rgba(245, 158, 11, 0.4);background:rgba(245, 158, 11, 0.08);padding:14px 18px;">
+          <div style="display:flex;align-items:flex-start;gap:12px;">
+            <div style="font-size:1.6rem;line-height:1;">⚠️</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;color:#F59E0B;font-size:0.92rem;margin-bottom:4px;">
+                TÙY CHỌN NÂNG CAO — CHỈ DÀNH CHO DEVELOPER & QUẢN TRỊ VIÊN
+              </div>
+              <p style="margin:0 0 8px;font-size:0.82rem;line-height:1.5;color:var(--text);">
+                Tính năng này kết nối trực tiếp Google Drive API v3 để duyệt thư mục và tệp. <strong>Học sinh và Giáo viên thông thường KHÔNG CẦN phải thực hiện các bước này!</strong>
+              </p>
+              <div style="background:rgba(0,0,0,0.15);padding:10px 14px;border-radius:8px;font-size:0.8rem;line-height:1.5;">
+                <strong style="color:var(--success);">💡 Cách dùng chuẩn & nhanh nhất:</strong><br/>
+                Bạn <strong>chỉ cần tải video lên Google Drive $\rightarrow$ bật chia sẻ link $\rightarrow$ copy dán vào bài giảng</strong> ở Video Studio là xong ngay! Video sẽ phát trực tiếp qua CDN Google tốc độ cao mà không cần bất kỳ cài đặt nào.
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Header & Storage Quota Card -->
         <div class="card" style="border:1px solid rgba(10,132,255,0.28);background:linear-gradient(135deg, rgba(10,132,255,0.08), rgba(48,209,88,0.05));">
           <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
