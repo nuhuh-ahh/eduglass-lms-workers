@@ -385,11 +385,66 @@ export async function handleVideoLearningRoutes(request, env, path) {
   const sessMatch = path.match(/^\/api\/v1\/lessons\/([^/]+)\/session$/);
   if (sessMatch && method === 'POST') {
     const lid = sessMatch[1];
+    const les = await env.DB.prepare(
+      `SELECT l.*, v.storage_provider, v.storage_key
+       FROM lessons l LEFT JOIN videos v ON v.id = l.video_id WHERE l.id = ?`
+    ).bind(lid).first();
+    if (!les) return errorResponse('Không tìm thấy bài giảng.', 404);
+
+    const isStaff = ['teacher', 'school_admin', 'super_admin'].includes(user.role_name);
+    const maxPerVid = Number(env.EDUGLASS_MAX_CONCURRENT_PER_VIDEO || 20);
+    const maxGdriveGlobal = Number(env.EDUGLASS_MAX_GDRIVE_CONCURRENT || 25);
+
+    // Concurrency limits for students
+    if (!isStaff) {
+      // 1. Check per-video concurrency (10-20 active viewers)
+      const activeCountRow = await env.DB.prepare(
+        `SELECT COUNT(*) AS count FROM video_watch_sessions
+         WHERE lesson_id = ? AND student_id != ? AND last_heartbeat_at > datetime('now', '-45 seconds')`
+      ).bind(lid, user.id).first();
+      const activeCount = Number(activeCountRow?.count || 0);
+
+      if (activeCount >= maxPerVid) {
+        return jsonResponse({
+          error: `Phòng học video này đang có ${activeCount} bạn cùng theo dõi (đạt giới hạn an toàn tối đa ${maxPerVid} người cùng lúc để đảm bảo đường truyền mượt mà). Bạn vui lòng đợi 1-2 phút hoặc thử lại sau nhé!`,
+          concurrency_limit: true,
+          active_viewers: activeCount,
+          max_allowed: maxPerVid,
+        }, 429);
+      }
+
+      // 2. If video is from Google Drive, check global Google Drive concurrency
+      const isGoogleDrive = (les.storage_key || '').includes('drive.google.com');
+      if (isGoogleDrive) {
+        const activeGdriveRow = await env.DB.prepare(
+          `SELECT COUNT(*) AS count
+           FROM video_watch_sessions vws
+           JOIN lessons l ON l.id = vws.lesson_id
+           JOIN videos v ON v.id = l.video_id
+           WHERE v.storage_key LIKE '%drive.google.com%'
+             AND vws.student_id != ?
+             AND vws.last_heartbeat_at > datetime('now', '-45 seconds')`
+        ).bind(user.id).first();
+        const activeGdriveCount = Number(activeGdriveRow?.count || 0);
+
+        if (activeGdriveCount >= maxGdriveGlobal) {
+          return jsonResponse({
+            error: `Kho bài giảng Google Drive đang phục vụ tối đa ${activeGdriveCount} luồng xem đồng thời (đạt giới hạn an toàn ${maxGdriveGlobal} luồng để tránh nghẽn quota của Google Drive). Bạn vui lòng đợi ít phút nhé!`,
+            concurrency_limit: true,
+            active_viewers: activeGdriveCount,
+            max_allowed: maxGdriveGlobal,
+          }, 429);
+        }
+      }
+    }
+
     let session = await env.DB.prepare('SELECT * FROM video_watch_sessions WHERE lesson_id = ? AND student_id = ?').bind(lid, user.id).first();
     if (!session) {
       const sid = generateId('vws');
-      await env.DB.prepare('INSERT INTO video_watch_sessions (id, lesson_id, student_id) VALUES (?, ?, ?)').bind(sid, lid, user.id).run();
+      await env.DB.prepare('INSERT INTO video_watch_sessions (id, lesson_id, student_id, last_heartbeat_at) VALUES (?, ?, ?, datetime(\'now\'))').bind(sid, lid, user.id).run();
       session = await env.DB.prepare('SELECT * FROM video_watch_sessions WHERE id = ?').bind(sid).first();
+    } else {
+      await env.DB.prepare('UPDATE video_watch_sessions SET last_heartbeat_at = datetime(\'now\') WHERE id = ?').bind(session.id).run();
     }
     const segs = (await env.DB.prepare('SELECT start_sec, end_sec FROM watched_segments WHERE session_id = ? ORDER BY start_sec ASC').bind(session.id).all()).results || [];
     return jsonResponse({ session, segments: segs.map((s) => [s.start_sec, s.end_sec]) });

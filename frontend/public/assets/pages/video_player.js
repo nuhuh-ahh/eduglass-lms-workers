@@ -15,7 +15,44 @@ export async function renderVideoPlayerPage(container, lessonIdParam = null) {
   }
 
   const detail = await apiRequest(`/api/v1/lessons/${lessonId}`);
-  const sessRes = await apiRequest(`/api/v1/lessons/${lessonId}/session`, { method: 'POST' });
+  let sessRes;
+  try {
+    sessRes = await apiRequest(`/api/v1/lessons/${lessonId}/session`, { method: 'POST' });
+  } catch (err) {
+    container.innerHTML = `
+      <div class="page-enter card" style="text-align:center;padding:48px 24px;max-width:640px;margin:24px auto;">
+        <div style="font-size:3.2rem;margin-bottom:12px;">⏳</div>
+        <h3 style="margin:0 0 8px;">Phòng học video đang đầy</h3>
+        <p class="muted" style="margin:0 auto 20px;line-height:1.6;font-size:0.92rem;">
+          ${escapeHtml(err.message || 'Để bảo vệ đường truyền video Google Drive luôn mượt mà và không bị nghẽn mạng, hệ thống giới hạn 15–20 bạn xem đồng thời.')}
+        </p>
+        <div class="flex-row" style="justify-content:center;gap:12px;">
+          <button class="btn btn-primary" id="btn-retry-session">🔄 Thử vào lại ngay</button>
+          <button class="btn btn-secondary" id="btn-back-dashboard">Quay lại trang chủ</button>
+        </div>
+        <div class="muted" style="margin-top:16px;font-size:0.82rem;">Tự động thử lại sau <span id="retry-sec" style="font-weight:700;color:var(--primary);">10</span> giây...</div>
+      </div>
+    `;
+    let secLeft = 10;
+    const interval = setInterval(() => {
+      secLeft--;
+      const el = document.getElementById('retry-sec');
+      if (el) el.textContent = secLeft;
+      if (secLeft <= 0) {
+        clearInterval(interval);
+        renderVideoPlayerPage(container, lessonId);
+      }
+    }, 1000);
+    document.getElementById('btn-retry-session')?.addEventListener('click', () => {
+      clearInterval(interval);
+      renderVideoPlayerPage(container, lessonId);
+    });
+    document.getElementById('btn-back-dashboard')?.addEventListener('click', () => {
+      clearInterval(interval);
+      location.hash = '#dashboard';
+    });
+    return;
+  }
   const lesson = detail.lesson;
   const questions = detail.questions || [];
   const answeredIds = new Set((detail.question_attempts || []).map((a) => a.question_id));

@@ -171,17 +171,25 @@ export async function renderVideoStudioPage(container, navigate) {
     });
 
     document.getElementById('btn-link-video')?.addEventListener('click', () => {
-      openModal('Gắn video từ liên kết ngoài (URL / CDN)', `
+      openModal('Gắn video từ liên kết ngoài (URL / Google Drive / YouTube)', `
         <form id="link-vid-form">
+          <div class="card" style="margin-bottom:14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);padding:12px 14px;">
+            <div style="font-weight:700;font-size:0.86rem;color:var(--success);margin-bottom:6px;">💡 Hướng dẫn 3 nguồn video khuyên dùng:</div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-size:0.78rem;line-height:1.45;color:var(--text-muted);">
+              <div>• <strong>📁 Google Drive (5TB):</strong> Chuột phải vào video $\rightarrow$ <em>Chia sẻ</em> $\rightarrow$ Đổi quyền thành <em>"Bất kỳ ai có đường liên kết (Xem)"</em> $\rightarrow$ Copy link dán vào đây. <em>(Hệ thống tự động kích hoạt bộ điều tiết an toàn 15–20 người xem cùng lúc để bảo vệ quota Drive).</em></div>
+              <div>• <strong>🔴 YouTube:</strong> Upload lên kênh cá nhân $\rightarrow$ Chọn chế độ <em>"Không công khai (Unlisted)"</em> $\rightarrow$ Copy link YouTube dán vào đây. <em>(Xem mượt mà qua YouTube Player chính chủ).</em></div>
+              <div>• <strong>🎬 Direct MP4 (GitHub Releases / Catbox):</strong> Copy link trực tiếp <code>.mp4</code> dán vào đây. <em>(Hỗ trợ 100% Anti-Skip khóa tua và dừng hình khi có câu hỏi).</em></div>
+            </div>
+          </div>
           <div class="field">
             <label>Tiêu đề video</label>
             <input class="input" id="lv-title" required placeholder="VD: Bài 1 - Giới thiệu khoá học" />
           </div>
           <div class="field">
-            <label>Đường dẫn video trực tiếp (Direct MP4 / WebM)</label>
-            <input class="input" id="lv-url" type="url" required placeholder="https://files.catbox.moe/abc.mp4 hoặc link GitHub Release MP4" />
+            <label>Đường dẫn video trực tiếp (Google Drive / YouTube / Direct MP4)</label>
+            <input class="input" id="lv-url" type="url" required placeholder="Dán link Drive, YouTube hoặc link MP4..." />
             <small class="muted" style="display:block;margin-top:4px;font-size:0.75rem;">
-              Hỗ trợ link video direct từ GitHub Releases, Catbox, Supabase, Cloudinary hoặc máy chủ riêng. Trình phát Liquid Glass sẽ stream trực tiếp mà không tốn dung lượng database!
+              Hệ thống tự động nhận diện ID video từ Google Drive và YouTube để nhúng trình phát chuẩn tương ứng!
             </small>
           </div>
           <div class="field">
@@ -278,10 +286,23 @@ export async function renderVideoStudioPage(container, navigate) {
     document.getElementById('btn-upload-video')?.addEventListener('click', () => {
       openModal('Tải video bài giảng lên (Tối đa 2GB — MP4 / WebM)', `
         <form id="upload-vid-form">
+          <div class="card" style="margin-bottom:14px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);padding:12px 14px;">
+            <div style="font-weight:700;font-size:0.86rem;color:var(--primary);margin-bottom:4px;">💡 Hướng dẫn tải video:</div>
+            <ul style="margin:0;padding-left:18px;font-size:0.78rem;line-height:1.5;color:var(--text-muted);">
+              <li>Hỗ trợ file video định dạng <strong>MP4</strong> hoặc <strong>WebM</strong> (dung lượng tối đa <strong>2GB</strong>).</li>
+              <li>Hệ thống tích hợp <strong>Audio Inspector</strong> quét tương thích AAC và bộ chuyển đổi FFmpeg Web tự động.</li>
+              <li>Kéo thả tệp trực tiếp vào khung nét đứt bên dưới để chọn nhanh.</li>
+            </ul>
+          </div>
           <div class="field"><label>Tiêu đề video</label><input class="input" id="uv-title" required /></div>
           <div class="field">
-            <label>Chọn tệp video (.mp4, .webm — Tối đa 2GB)</label>
-            <input class="input" id="uv-file" type="file" accept="video/mp4,video/webm" required />
+            <label>Tệp video</label>
+            <div id="uv-dropzone" style="border:2px dashed var(--border);border-radius:12px;padding:26px 16px;text-align:center;cursor:pointer;transition:all 0.2s ease;background:rgba(255,255,255,0.02);">
+              <div style="font-size:2.2rem;margin-bottom:6px;">📁</div>
+              <div id="uv-dropzone-title" style="font-weight:600;font-size:0.92rem;">Kéo thả tệp video vào đây</div>
+              <div class="muted" style="font-size:0.75rem;margin-top:4px;">hoặc bấm vào để chọn từ máy tính (.mp4, .webm — tối đa 2GB)</div>
+            </div>
+            <input class="input" id="uv-file" type="file" accept="video/mp4,video/webm" style="display:none;" required />
           </div>
           <div id="uv-audio-status" style="margin-top:-6px;margin-bottom:12px;"></div>
           <div class="field">
@@ -295,14 +316,37 @@ export async function renderVideoStudioPage(container, navigate) {
       `, (slot, close) => {
         let activeFile = null;
         const fileInput = slot.querySelector('#uv-file');
+        const dropzone = slot.querySelector('#uv-dropzone');
+        const dropzoneTitle = slot.querySelector('#uv-dropzone-title');
         const audioStatusHost = slot.querySelector('#uv-audio-status');
         const statusText = slot.querySelector('#uv-status-text');
         const submitBtn = slot.querySelector('#btn-submit-upload');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropzone.style.borderColor = 'var(--primary)';
+          dropzone.style.background = 'rgba(99,102,241,0.08)';
+        });
+        dropzone.addEventListener('dragleave', () => {
+          dropzone.style.borderColor = 'var(--border)';
+          dropzone.style.background = 'rgba(255,255,255,0.02)';
+        });
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropzone.style.borderColor = 'var(--border)';
+          dropzone.style.background = 'rgba(255,255,255,0.02)';
+          if (e.dataTransfer.files && e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+          }
+        });
 
         fileInput.addEventListener('change', async () => {
           const f = fileInput.files[0];
           if (!f) return;
           activeFile = f;
+          dropzoneTitle.textContent = `📄 ${f.name} (${(f.size / (1024 * 1024)).toFixed(1)} MB)`;
 
           if (!slot.querySelector('#uv-title').value) {
             slot.querySelector('#uv-title').value = f.name.replace(/\.[^.]+$/, '');
@@ -418,6 +462,14 @@ export async function renderVideoStudioPage(container, navigate) {
     document.getElementById('btn-new-lesson')?.addEventListener('click', () => {
       openModal('Tạo bài giảng video mới', `
         <form id="new-les-form">
+          <div class="card" style="margin-bottom:14px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);padding:12px 14px;">
+            <div style="font-weight:700;font-size:0.86rem;color:var(--primary);margin-bottom:4px;">💡 Quy trình tạo bài giảng tương tác:</div>
+            <ol style="margin:0;padding-left:18px;font-size:0.78rem;line-height:1.5;color:var(--text-muted);">
+              <li>Chọn lớp học và chọn video tương ứng từ Thư viện (đã tải lên hoặc gắn từ Google Drive / YouTube).</li>
+              <li>Đặt tên bài giảng và chọn <strong>Xuất bản ngay</strong> hoặc <strong>Bản nháp</strong>.</li>
+              <li>Sau khi tạo, nhấn vào thanh <strong>Timeline</strong> ở màn hình chính để gắn các câu hỏi trắc nghiệm tự dừng hình tại từng giây!</li>
+            </ol>
+          </div>
           <div class="field"><label>Lớp học</label>
             <select class="select" id="nl-cls">${classrooms.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}</select>
           </div>
@@ -425,7 +477,7 @@ export async function renderVideoStudioPage(container, navigate) {
             <select class="select" id="nl-vid">${videos.map((v) => `<option value="${v.id}">${escapeHtml(v.title)}</option>`).join('')}</select>
           </div>
           <div class="field"><label>Tên bài giảng</label><input class="input" id="nl-title" required /></div>
-          <div class="field"><label>Mô tả</label><textarea class="textarea" id="nl-desc"></textarea></div>
+          <div class="field"><label>Mô tả mục tiêu bài học</label><textarea class="textarea" id="nl-desc" placeholder="Giới thiệu nội dung trọng tâm của video..."></textarea></div>
           <div class="field"><label>Trạng thái</label>
             <select class="select" id="nl-status"><option value="published">Xuất bản ngay</option><option value="draft">Bản nháp</option></select>
           </div>
