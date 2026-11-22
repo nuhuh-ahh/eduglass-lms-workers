@@ -95,10 +95,34 @@ export async function handleVideoLearningRoutes(request, env, path) {
     return jsonResponse({ video }, 201);
   }
 
+  if (path === '/api/v1/videos/link' && method === 'POST') {
+    const roleErr = requireRoles(user, ['teacher', 'school_admin', 'super_admin']);
+    if (roleErr) return roleErr;
+    const body = await parseJsonBody(request);
+    const url = (body.url || '').trim();
+    if (!url || !/^https?:\/\//i.test(url)) {
+      return errorResponse('Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://).', 400);
+    }
+    const vid = generateId('vid');
+    const title = sanitizeText(body.title || 'Video từ liên kết');
+    const duration = Math.max(1, Number(body.duration_seconds || 120));
+    await env.DB.prepare(
+      `INSERT INTO videos (id, uploader_id, title, original_filename, storage_provider, storage_key, mime_type, file_size_bytes, duration_seconds, processing_status)
+       VALUES (?, ?, ?, ?, 'url', ?, 'video/mp4', 0, ?, 'ready')`
+    ).bind(vid, user.id, title, url, url, duration).run();
+    await writeAuditLog(env, 'video.link', 'video', vid, user.id);
+    const video = await env.DB.prepare('SELECT * FROM videos WHERE id = ?').bind(vid).first();
+    return jsonResponse({ video }, 201);
+  }
+
   const streamMatch = path.match(/^\/api\/v1\/videos\/([^/]+)\/stream$/);
   if (streamMatch && method === 'GET') {
     const vid = await env.DB.prepare('SELECT * FROM videos WHERE id = ?').bind(streamMatch[1]).first();
     if (!vid) return errorResponse('Không tìm thấy video.', 404);
+
+    if (vid.storage_provider === 'url' || vid.storage_provider === 'external') {
+      return Response.redirect(vid.storage_key, 302);
+    }
 
     let total = Number(vid.file_size_bytes || 0);
 

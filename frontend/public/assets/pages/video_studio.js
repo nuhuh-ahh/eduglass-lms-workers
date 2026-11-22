@@ -50,7 +50,8 @@ export async function renderVideoStudioPage(container, navigate) {
             <p class="muted" style="margin:4px 0 0;">Tải video MP4/WebM, gắn câu hỏi tương tác trực tiếp lên timeline và xem trước bài giảng.</p>
           </div>
           <div class="flex-row">
-            <button class="btn btn-secondary" id="btn-upload-video">↑ Tải video lên</button>
+            <button class="btn btn-secondary" id="btn-link-video">🔗 Gắn link Video (URL)</button>
+            <button class="btn btn-secondary" id="btn-upload-video">↑ Tải tệp lên</button>
             <button class="btn btn-primary" id="btn-new-lesson">+ Tạo bài giảng</button>
           </div>
         </div>
@@ -151,6 +152,89 @@ export async function renderVideoStudioPage(container, navigate) {
       });
       showToast(`Đã cập nhật trạng thái: ${next}`, 'success');
       draw();
+    });
+
+    document.getElementById('btn-link-video')?.addEventListener('click', () => {
+      openModal('Gắn video từ liên kết ngoài (URL / CDN)', `
+        <form id="link-vid-form">
+          <div class="field">
+            <label>Tiêu đề video</label>
+            <input class="input" id="lv-title" required placeholder="VD: Bài 1 - Giới thiệu khoá học" />
+          </div>
+          <div class="field">
+            <label>Đường dẫn video trực tiếp (Direct MP4 / WebM)</label>
+            <input class="input" id="lv-url" type="url" required placeholder="https://files.catbox.moe/abc.mp4 hoặc link GitHub Release MP4" />
+            <small class="muted" style="display:block;margin-top:4px;font-size:0.75rem;">
+              Hỗ trợ link video direct từ GitHub Releases, Catbox, Supabase, Cloudinary hoặc máy chủ riêng. Trình phát Liquid Glass sẽ stream trực tiếp mà không tốn dung lượng database!
+            </small>
+          </div>
+          <div class="field">
+            <label>Thời lượng (giây — tự động tính khi dán link)</label>
+            <input class="input" id="lv-dur" type="number" min="1" value="120" />
+          </div>
+          <div id="lv-preview-host" style="margin-bottom:12px;"></div>
+          <div class="flex-end">
+            <button class="btn btn-primary" id="lv-submit" type="submit">Lưu video</button>
+          </div>
+        </form>
+      `, (slot, close) => {
+        const urlInput = slot.querySelector('#lv-url');
+        const durInput = slot.querySelector('#lv-dur');
+        const previewHost = slot.querySelector('#lv-preview-host');
+        const submitBtn = slot.querySelector('#lv-submit');
+
+        urlInput.addEventListener('change', () => {
+          const url = urlInput.value.trim();
+          if (url && /^https?:\/\//i.test(url)) {
+            previewHost.innerHTML = `
+              <p class="muted" style="margin:4px 0;font-size:0.8rem;">Đang kiểm tra link video...</p>
+              <video id="lv-probe" preload="metadata" style="display:none;"></video>
+            `;
+            const probe = slot.querySelector('#lv-probe');
+            probe.src = url;
+            probe.onloadedmetadata = () => {
+              if (probe.duration && isFinite(probe.duration)) {
+                durInput.value = Math.round(probe.duration);
+                previewHost.innerHTML = `
+                  <div class="pill pill-success" style="width:100%;padding:6px 10px;font-size:0.8rem;">
+                    ✅ Nhận diện thời lượng video: ${Math.round(probe.duration)} giây.
+                  </div>
+                `;
+              }
+            };
+            probe.onerror = () => {
+              previewHost.innerHTML = `
+                <div class="pill pill-warning" style="width:100%;padding:6px 10px;font-size:0.8rem;">
+                  ℹ️ Không thể tự đo thời lượng trước (do CORS), hãy nhập thời lượng thủ công ở ô trên nhé.
+                </div>
+              `;
+            };
+          }
+        });
+
+        slot.querySelector('#link-vid-form').addEventListener('submit', async (ev) => {
+          ev.preventDefault();
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Đang lưu...';
+          try {
+            await apiRequest('/api/v1/videos/link', {
+              method: 'POST',
+              body: {
+                title: slot.querySelector('#lv-title').value,
+                url: urlInput.value.trim(),
+                duration_seconds: Number(durInput.value || 120),
+              },
+            });
+            close();
+            showToast('Đã thêm video từ URL thành công!', 'success');
+            draw();
+          } catch (err) {
+            showToast(err.message, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Lưu video';
+          }
+        });
+      });
     });
 
     document.getElementById('btn-upload-video')?.addEventListener('click', () => {
