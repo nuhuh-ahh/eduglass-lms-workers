@@ -30,6 +30,18 @@ export default {
       });
     }
 
+    // Direct Google OAuth Compliance Pages (/policy & /terms-of-service)
+    if (path === '/policy') {
+      if (env.ASSETS) {
+        return env.ASSETS.fetch(new Request(new URL('/policy.html', request.url), request));
+      }
+    }
+    if (path === '/terms-of-service') {
+      if (env.ASSETS) {
+        return env.ASSETS.fetch(new Request(new URL('/terms-of-service.html', request.url), request));
+      }
+    }
+
     // Health check
     if (path === '/api/health') {
       return jsonResponse({

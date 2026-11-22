@@ -4,13 +4,20 @@
 import { apiRequest, setToken } from '../core/api.js';
 import { applyPreferencesToDOM, loadLocale, showToast, state, t, updatePreferences } from '../core/store.js';
 
-export function renderAuthPage(container, onAuthenticated) {
-  let mode = 'login';
+export function renderAuthPage(container, onAuthenticated, initialMode = 'login', onBackToHome = null) {
+  let mode = initialMode || 'login';
 
   function draw() {
     container.innerHTML = `
       <div class="auth-screen">
         <div class="auth-card page-enter">
+          ${onBackToHome ? `
+            <div style="margin-bottom:12px;">
+              <button class="btn btn-secondary btn-sm" id="auth-back-to-home" style="border:none;background:transparent;padding:0;color:var(--primary);font-size:0.82rem;font-weight:600;">
+                ← Quay lại Trang chủ
+              </button>
+            </div>
+          ` : ''}
           <div class="flex-between" style="margin-bottom:22px;">
             <div class="brand-lockup" style="padding:0;">
               <div class="brand-logo" aria-hidden="true">EG</div>
@@ -86,9 +93,19 @@ export function renderAuthPage(container, onAuthenticated) {
             </form>
             <div id="forgot-result" style="margin-top:12px;"></div>
           `}
+
+          <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border-subtle);text-align:center;font-size:0.78rem;color:var(--text-muted);display:flex;justify-content:center;gap:14px;">
+            <a href="/policy" id="auth-link-policy" style="color:inherit;text-decoration:underline;">Chính sách bảo mật</a>
+            <span>•</span>
+            <a href="/terms-of-service" id="auth-link-terms" style="color:inherit;text-decoration:underline;">Điều khoản dịch vụ</a>
+          </div>
         </div>
       </div>
     `;
+
+    document.getElementById('auth-back-to-home')?.addEventListener('click', () => {
+      if (onBackToHome) onBackToHome();
+    });
 
     container.querySelectorAll('[data-auth-tab]').forEach((btn) => {
       btn.addEventListener('click', () => {

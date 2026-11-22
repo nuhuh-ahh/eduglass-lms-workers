@@ -14,6 +14,9 @@ import { renderCalendarPage, renderNotificationsPage } from './pages/calendar_no
 import { renderAdminPage, renderModulesPage, renderSettingsPage } from './pages/settings_admin.js';
 import { renderSubAccountsPage } from './pages/sub_accounts.js';
 import { renderGDriveExplorerPage } from './pages/gdrive_explorer.js';
+import { renderLandingPage } from './pages/landing.js';
+import { renderPolicyPage } from './pages/policy.js';
+import { renderTermsPage } from './pages/terms.js';
 
 const appRoot = document.getElementById('app');
 
@@ -78,9 +81,17 @@ function getNavItems(role) {
 function navigate(route, param = null) {
   state.route = route;
   state.routeParam = param;
-  window.location.hash = param ? `#${route}/${param}` : `#${route}`;
-  renderActiveView();
-  updateActiveNavHighlight();
+  if (route === 'home') {
+    window.location.hash = '';
+  } else {
+    window.location.hash = param ? `#${route}/${param}` : `#${route}`;
+  }
+  if (!state.user) {
+    renderAppShell();
+  } else {
+    renderActiveView();
+    updateActiveNavHighlight();
+  }
 }
 
 function updateActiveNavHighlight() {
@@ -114,6 +125,8 @@ async function renderActiveView() {
     case 'settings': await renderSettingsPage(slot, renderAppShell); break;
     case 'modules': await renderModulesPage(slot); break;
     case 'admin': await renderAdminPage(slot); break;
+    case 'policy': renderPolicyPage(slot, navigate); break;
+    case 'terms-of-service': renderTermsPage(slot, navigate); break;
     default: await renderDashboardPage(slot, navigate);
   }
 }
@@ -129,7 +142,28 @@ async function refreshUnreadBadge() {
 
 async function renderAppShell() {
   if (!state.user) {
-    renderAuthPage(appRoot, () => renderAppShell());
+    if (state.route === 'policy') {
+      renderPolicyPage(appRoot, navigate);
+      return;
+    }
+    if (state.route === 'terms-of-service') {
+      renderTermsPage(appRoot, navigate);
+      return;
+    }
+    if (state.route === 'auth' || state.route === 'login' || state.route === 'register') {
+      const initialMode = state.route === 'register' ? 'register' : (state.routeParam || 'login');
+      renderAuthPage(appRoot, () => {
+        state.route = 'dashboard';
+        renderAppShell();
+      }, initialMode, () => {
+        navigate('home');
+      });
+      return;
+    }
+    // Public Landing Page (Zero forced Login Wall)
+    renderLandingPage(appRoot, navigate, (mode) => {
+      navigate('auth', mode);
+    });
     return;
   }
 
@@ -268,6 +302,8 @@ async function renderAppShell() {
     setToken('');
     localStorage.removeItem('eduglass_parent_teacher');
     state.user = null;
+    state.route = 'home';
+    window.location.hash = '';
     renderAppShell();
   });
 
@@ -275,7 +311,9 @@ async function renderAppShell() {
 }
 
 async function init() {
-  const rawHash = window.location.hash || '#dashboard';
+  const path = window.location.pathname.replace(/^\//, '').replace(/\.html$/, '');
+  const rawHash = window.location.hash || '';
+
   if (rawHash.startsWith('#magic')) {
     const queryPart = rawHash.includes('?') ? rawHash.split('?')[1] : '';
     const params = new URLSearchParams(queryPart);
@@ -300,13 +338,25 @@ async function init() {
     }
   }
 
-  const hash = rawHash.replace(/^#/, '');
-  const [route, param] = hash.split('/');
-  if (route) {
-    state.route = route;
-    state.routeParam = param || null;
+  if (path === 'policy') {
+    state.route = 'policy';
+  } else if (path === 'terms-of-service') {
+    state.route = 'terms-of-service';
+  } else if (rawHash) {
+    const hash = rawHash.replace(/^#/, '');
+    const [route, param] = hash.split('/');
+    if (route) {
+      state.route = route;
+      state.routeParam = param || null;
+    }
+  } else {
+    state.route = 'home';
   }
+
   await bootstrapSession();
+  if (state.user && (state.route === 'home' || !state.route)) {
+    state.route = 'dashboard';
+  }
   await renderAppShell();
 }
 
