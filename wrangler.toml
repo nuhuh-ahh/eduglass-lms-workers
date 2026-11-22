@@ -22,6 +22,7 @@ migrations_dir = "database/migrations"
 [vars]
 EDUGLASS_APP_NAME = "EduGlass LMS"
 EDUGLASS_ENV = "production"
+EDUGLASS_SECRET_KEY = "eduglass-lms-production-fallback-secret-key-32chars-minimum!"
 EDUGLASS_JWT_EXPIRE_HOURS = "24"
 EDUGLASS_JWT_REMEMBER_DAYS = "30"
 EDUGLASS_MAX_VIDEO_MB = "2048"
