@@ -11,12 +11,13 @@ not_found_handling = "single-page-application"
 [[d1_databases]]
 binding = "DB"
 database_name = "eduglass-lms-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "558fccd2-98df-429a-93bd-59f11453883a"
 migrations_dir = "database/migrations"
 
-[[r2_buckets]]
-binding = "VIDEO_BUCKET"
-bucket_name = "eduglass-lms-videos"
+# R2 is optional (uncomment if you add a credit card to Cloudflare R2 later)
+# [[r2_buckets]]
+# binding = "VIDEO_BUCKET"
+# bucket_name = "eduglass-lms-videos"
 
 [vars]
 EDUGLASS_APP_NAME = "EduGlass LMS"

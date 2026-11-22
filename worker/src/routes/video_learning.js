@@ -57,18 +57,39 @@ export async function handleVideoLearningRoutes(request, env, path) {
     const vid = generateId('vid');
     const storageKey = `videos/${vid}${ext}`;
     const buf = await file.arrayBuffer();
+    let provider = 'd1';
+
     if (env.VIDEO_BUCKET) {
+      provider = 'r2';
       await env.VIDEO_BUCKET.put(storageKey, buf, {
         httpMetadata: { contentType: file.type || 'video/mp4' },
       });
+    } else {
+      // Zero-Card Mode: Store directly in D1 Database in 512KB chunks (5GB Free, No Card required)
+      const CHUNK_SIZE = 512 * 1024;
+      const totalBytes = buf.byteLength;
+      const numChunks = Math.ceil(totalBytes / CHUNK_SIZE);
+      const stmts = [];
+      for (let i = 0; i < numChunks; i++) {
+        const slice = buf.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        stmts.push(
+          env.DB.prepare(
+            'INSERT INTO video_chunks (id, video_id, chunk_index, data) VALUES (?, ?, ?, ?)'
+          ).bind(generateId('chk'), vid, i, new Uint8Array(slice))
+        );
+      }
+      // Execute in batches of 25
+      for (let b = 0; b < stmts.length; b += 25) {
+        await env.DB.batch(stmts.slice(b, b + 25));
+      }
     }
 
     const title = sanitizeText(form.get('title') || filename.replace(/\.[^.]+$/, ''));
     const duration = Math.max(1, Number(form.get('duration_seconds') || 120));
     await env.DB.prepare(
       `INSERT INTO videos (id, uploader_id, title, original_filename, storage_provider, storage_key, mime_type, file_size_bytes, duration_seconds, processing_status)
-       VALUES (?, ?, ?, ?, 'r2', ?, ?, ?, ?, 'ready')`
-    ).bind(vid, user.id, title, sanitizeText(filename), storageKey, file.type || 'video/mp4', file.size, duration).run();
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ready')`
+    ).bind(vid, user.id, title, sanitizeText(filename), provider, storageKey, file.type || 'video/mp4', file.size, duration).run();
     await writeAuditLog(env, 'video.upload', 'video', vid, user.id);
     const video = await env.DB.prepare('SELECT * FROM videos WHERE id = ?').bind(vid).first();
     return jsonResponse({ video }, 201);
@@ -78,62 +99,110 @@ export async function handleVideoLearningRoutes(request, env, path) {
   if (streamMatch && method === 'GET') {
     const vid = await env.DB.prepare('SELECT * FROM videos WHERE id = ?').bind(streamMatch[1]).first();
     if (!vid) return errorResponse('Không tìm thấy video.', 404);
-    if (!env.VIDEO_BUCKET) return errorResponse('R2 VIDEO_BUCKET chưa được gắn cấu hình.', 503);
 
     let total = Number(vid.file_size_bytes || 0);
-    if (total <= 0) {
-      try {
-        const headObj = await env.VIDEO_BUCKET.head(vid.storage_key);
-        if (headObj && headObj.size) {
-          total = Number(headObj.size);
-          await env.DB.prepare('UPDATE videos SET file_size_bytes = ? WHERE id = ?').bind(total, vid.id).run();
-        }
-      } catch {
-        // Ignore fallback
-      }
-    }
 
-    const rangeHeader = request.headers.get('Range');
-    if (rangeHeader && rangeHeader.startsWith('bytes=')) {
-      const parts = rangeHeader.replace('bytes=', '').trim().split('-');
-      const start = parts[0] ? parseInt(parts[0], 10) : 0;
-      // Use 4MB chunks for fast, continuous buffering without stalling
-      const defaultChunk = 4 * 1024 * 1024;
-      let end = parts[1] ? parseInt(parts[1], 10) : (total > 0 ? Math.min(start + defaultChunk - 1, total - 1) : start + defaultChunk - 1);
-      if (total > 0 && end >= total) {
-        end = total - 1;
+    // If R2 storage is used and available
+    if (vid.storage_provider === 'r2' && env.VIDEO_BUCKET) {
+      if (total <= 0) {
+        try {
+          const headObj = await env.VIDEO_BUCKET.head(vid.storage_key);
+          if (headObj && headObj.size) {
+            total = Number(headObj.size);
+            await env.DB.prepare('UPDATE videos SET file_size_bytes = ? WHERE id = ?').bind(total, vid.id).run();
+          }
+        } catch { /* ignore */ }
       }
-      const length = Math.max(1, end - start + 1);
 
-      const obj = await env.VIDEO_BUCKET.get(vid.storage_key, {
-        range: { offset: start, length },
-      });
+      const rangeHeader = request.headers.get('Range');
+      if (rangeHeader && rangeHeader.startsWith('bytes=')) {
+        const parts = rangeHeader.replace('bytes=', '').trim().split('-');
+        const start = parts[0] ? parseInt(parts[0], 10) : 0;
+        const defaultChunk = 4 * 1024 * 1024;
+        let end = parts[1] ? parseInt(parts[1], 10) : (total > 0 ? Math.min(start + defaultChunk - 1, total - 1) : start + defaultChunk - 1);
+        if (total > 0 && end >= total) end = total - 1;
+        const length = Math.max(1, end - start + 1);
+
+        const obj = await env.VIDEO_BUCKET.get(vid.storage_key, { range: { offset: start, length } });
+        if (!obj) return errorResponse('Tệp video không tồn tại trên Cloudflare R2.', 404);
+
+        const completeTotal = total > 0 ? String(total) : '*';
+        return new Response(obj.body, {
+          status: 206,
+          headers: {
+            ...SECURITY_HEADERS,
+            'Content-Type': vid.mime_type || 'video/mp4',
+            'Accept-Ranges': 'bytes',
+            'Content-Range': `bytes ${start}-${end}/${completeTotal}`,
+            'Content-Length': String(length),
+            'Cache-Control': 'public, max-age=3600',
+          },
+        });
+      }
+
+      const obj = await env.VIDEO_BUCKET.get(vid.storage_key);
       if (!obj) return errorResponse('Tệp video không tồn tại trên Cloudflare R2.', 404);
-
-      const completeTotal = total > 0 ? String(total) : '*';
+      const finalSize = total > 0 ? total : obj.size;
       return new Response(obj.body, {
-        status: 206,
+        status: 200,
         headers: {
           ...SECURITY_HEADERS,
           'Content-Type': vid.mime_type || 'video/mp4',
           'Accept-Ranges': 'bytes',
-          'Content-Range': `bytes ${start}-${end}/${completeTotal}`,
-          'Content-Length': String(length),
+          'Content-Length': String(finalSize),
           'Cache-Control': 'public, max-age=3600',
         },
       });
     }
 
-    const obj = await env.VIDEO_BUCKET.get(vid.storage_key);
-    if (!obj) return errorResponse('Tệp video không tồn tại trên Cloudflare R2.', 404);
-    const finalSize = total > 0 ? total : obj.size;
-    return new Response(obj.body, {
-      status: 200,
+    // Zero-Card D1 Storage Fallback (5GB Free, No Credit Card needed)
+    const CHUNK_SIZE = 512 * 1024;
+    const rangeHeader = request.headers.get('Range');
+    let start = 0;
+    let end = total > 0 ? total - 1 : 0;
+    let isRange = false;
+
+    if (rangeHeader && rangeHeader.startsWith('bytes=')) {
+      isRange = true;
+      const parts = rangeHeader.replace('bytes=', '').trim().split('-');
+      start = parts[0] ? parseInt(parts[0], 10) : 0;
+      const defaultSlice = 2 * 1024 * 1024; // 2MB slice
+      end = parts[1] ? parseInt(parts[1], 10) : (total > 0 ? Math.min(start + defaultSlice - 1, total - 1) : start + defaultSlice - 1);
+      if (total > 0 && end >= total) end = total - 1;
+    }
+
+    const length = Math.max(1, end - start + 1);
+    const startChunkIdx = Math.floor(start / CHUNK_SIZE);
+    const endChunkIdx = Math.floor(end / CHUNK_SIZE);
+
+    const chunkRows = (await env.DB.prepare(
+      'SELECT chunk_index, data FROM video_chunks WHERE video_id = ? AND chunk_index >= ? AND chunk_index <= ? ORDER BY chunk_index ASC'
+    ).bind(vid.id, startChunkIdx, endChunkIdx).all()).results || [];
+
+    const out = new Uint8Array(length);
+    let outOffset = 0;
+    for (const r of chunkRows) {
+      const raw = new Uint8Array(r.data);
+      const cStart = r.chunk_index * CHUNK_SIZE;
+      const sStart = Math.max(0, start - cStart);
+      const sEnd = Math.min(raw.length, end - cStart + 1);
+      if (sEnd > sStart && outOffset < length) {
+        const slice = raw.subarray(sStart, sEnd);
+        const toCopy = Math.min(slice.length, length - outOffset);
+        out.set(slice.subarray(0, toCopy), outOffset);
+        outOffset += toCopy;
+      }
+    }
+
+    const completeTotal = total > 0 ? String(total) : String(outOffset);
+    return new Response(out, {
+      status: isRange ? 206 : 200,
       headers: {
         ...SECURITY_HEADERS,
         'Content-Type': vid.mime_type || 'video/mp4',
         'Accept-Ranges': 'bytes',
-        'Content-Length': String(finalSize),
+        ...(isRange ? { 'Content-Range': `bytes ${start}-${end}/${completeTotal}` } : {}),
+        'Content-Length': String(length),
         'Cache-Control': 'public, max-age=3600',
       },
     });
