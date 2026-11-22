@@ -38,8 +38,24 @@ export async function renderVideoPlayerPage(container, lessonIdParam = null) {
 
       <div class="card">
         <div class="video-stage">
-          <video id="lms-player" controls preload="metadata"
-            src="${lesson.video_id ? `/api/v1/videos/${lesson.video_id}/stream?token=${encodeURIComponent(getToken())}` : ''}"></video>
+          ${(() => {
+            const key = lesson.storage_key || '';
+            const yt = key.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+            const drive = key.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?\/\s]+)/i);
+            if (yt) {
+              return `<iframe id="lms-yt-frame" src="https://www.youtube.com/embed/${yt[1]}?enablejsapi=1&rel=0"
+                style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>`;
+            }
+            if (drive) {
+              return `<iframe id="lms-drive-frame" src="https://drive.google.com/file/d/${drive[1]}/preview"
+                style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
+                allow="autoplay" allowfullscreen></iframe>`;
+            }
+            return `<video id="lms-player" controls preload="metadata"
+              src="${lesson.video_id ? `/api/v1/videos/${lesson.video_id}/stream?token=${encodeURIComponent(getToken())}` : ''}"></video>`;
+          })()}
           <div id="question-overlay-host"></div>
         </div>
 

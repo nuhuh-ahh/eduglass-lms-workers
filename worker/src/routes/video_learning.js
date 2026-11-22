@@ -121,7 +121,12 @@ export async function handleVideoLearningRoutes(request, env, path) {
     if (!vid) return errorResponse('Không tìm thấy video.', 404);
 
     if (vid.storage_provider === 'url' || vid.storage_provider === 'external') {
-      return Response.redirect(vid.storage_key, 302);
+      const url = vid.storage_key;
+      const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?/\s]+)/i);
+      if (driveMatch) {
+        return Response.redirect(`https://drive.google.com/uc?export=download&id=${driveMatch[1]}`, 302);
+      }
+      return Response.redirect(url, 302);
     }
 
     let total = Number(vid.file_size_bytes || 0);
@@ -245,6 +250,7 @@ export async function handleVideoLearningRoutes(request, env, path) {
     }
     const lessons = (await env.DB.prepare(
       `SELECT l.*, c.name AS classroom_name, v.duration_seconds, v.title AS video_title,
+              v.storage_provider, v.storage_key,
               (SELECT COUNT(*) FROM video_questions vq WHERE vq.lesson_id = l.id) AS question_count,
               (SELECT watch_progress_pct FROM video_watch_sessions vws WHERE vws.lesson_id = l.id AND vws.student_id = ?) AS my_progress_pct,
               (SELECT is_completed FROM video_watch_sessions vws WHERE vws.lesson_id = l.id AND vws.student_id = ?) AS my_completed
@@ -276,7 +282,8 @@ export async function handleVideoLearningRoutes(request, env, path) {
   if (lessonMatch && method === 'GET') {
     const lid = lessonMatch[1];
     const lesson = await env.DB.prepare(
-      `SELECT l.*, c.name AS classroom_name, v.duration_seconds, v.mime_type, v.title AS video_title
+      `SELECT l.*, c.name AS classroom_name, v.duration_seconds, v.mime_type, v.title AS video_title,
+              v.storage_provider, v.storage_key
        FROM lessons l JOIN classrooms c ON c.id = l.classroom_id LEFT JOIN videos v ON v.id = l.video_id WHERE l.id = ?`
     ).bind(lid).first();
     if (!lesson) return errorResponse('Không tìm thấy bài giảng.', 404);

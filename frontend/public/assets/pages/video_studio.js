@@ -93,8 +93,24 @@ export async function renderVideoStudioPage(container, navigate) {
               </div>
 
               <div class="video-stage">
-                <video id="studio-video" controls preload="metadata"
-                  src="${detail.lesson.video_id ? `/api/v1/videos/${detail.lesson.video_id}/stream?token=${encodeURIComponent(getToken())}` : ''}"></video>
+                ${(() => {
+                  const key = detail.lesson.storage_key || '';
+                  const yt = key.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+                  const drive = key.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?\/\s]+)/i);
+                  if (yt) {
+                    return `<iframe src="https://www.youtube.com/embed/${yt[1]}?rel=0"
+                      style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen></iframe>`;
+                  }
+                  if (drive) {
+                    return `<iframe src="https://drive.google.com/file/d/${drive[1]}/preview"
+                      style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
+                      allow="autoplay" allowfullscreen></iframe>`;
+                  }
+                  return `<video id="studio-video" controls preload="metadata"
+                    src="${detail.lesson.video_id ? `/api/v1/videos/${detail.lesson.video_id}/stream?token=${encodeURIComponent(getToken())}` : ''}"></video>`;
+                })()}
               </div>
 
               <div style="margin-top:14px;">
@@ -183,11 +199,30 @@ export async function renderVideoStudioPage(container, navigate) {
         const previewHost = slot.querySelector('#lv-preview-host');
         const submitBtn = slot.querySelector('#lv-submit');
 
-        urlInput.addEventListener('change', () => {
+        function checkUrlInput() {
           const url = urlInput.value.trim();
+          const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+          const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?\/\s]+)/i);
+
+          if (ytMatch) {
+            previewHost.innerHTML = `
+              <div class="pill pill-success" style="width:100%;padding:6px 10px;font-size:0.8rem;">
+                🔴 Nhận diện video <strong>YouTube</strong> (ID: <code>${ytMatch[1]}</code>) — Tự động nhúng trình phát YouTube Player!
+              </div>
+            `;
+            return;
+          }
+          if (driveMatch) {
+            previewHost.innerHTML = `
+              <div class="pill pill-info" style="width:100%;padding:6px 10px;font-size:0.8rem;">
+                📁 Nhận diện liên kết <strong>Google Drive</strong> (ID: <code>${driveMatch[1]}</code>) — Tự động stream qua Google Drive!
+              </div>
+            `;
+            return;
+          }
           if (url && /^https?:\/\//i.test(url)) {
             previewHost.innerHTML = `
-              <p class="muted" style="margin:4px 0;font-size:0.8rem;">Đang kiểm tra link video...</p>
+              <p class="muted" style="margin:4px 0;font-size:0.8rem;">Đang kiểm tra link video MP4...</p>
               <video id="lv-probe" preload="metadata" style="display:none;"></video>
             `;
             const probe = slot.querySelector('#lv-probe');
@@ -197,7 +232,7 @@ export async function renderVideoStudioPage(container, navigate) {
                 durInput.value = Math.round(probe.duration);
                 previewHost.innerHTML = `
                   <div class="pill pill-success" style="width:100%;padding:6px 10px;font-size:0.8rem;">
-                    ✅ Nhận diện thời lượng video: ${Math.round(probe.duration)} giây.
+                    ✅ Nhận diện thời lượng video MP4: ${Math.round(probe.duration)} giây.
                   </div>
                 `;
               }
@@ -205,12 +240,15 @@ export async function renderVideoStudioPage(container, navigate) {
             probe.onerror = () => {
               previewHost.innerHTML = `
                 <div class="pill pill-warning" style="width:100%;padding:6px 10px;font-size:0.8rem;">
-                  ℹ️ Không thể tự đo thời lượng trước (do CORS), hãy nhập thời lượng thủ công ở ô trên nhé.
+                  ℹ️ Không thể tự đo thời lượng trước (do CORS), hãy nhập thời lượng ước tính ở ô trên nhé.
                 </div>
               `;
             };
           }
-        });
+        }
+
+        urlInput.addEventListener('input', checkUrlInput);
+        urlInput.addEventListener('change', checkUrlInput);
 
         slot.querySelector('#link-vid-form').addEventListener('submit', async (ev) => {
           ev.preventDefault();
