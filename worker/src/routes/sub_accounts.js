@@ -241,7 +241,42 @@ export async function handleSubAccountRoutes(request, env, path) {
     });
   }
 
-  // 4. PUT /api/v1/teacher/sub-accounts/:id/reset-password — Reset student password
+  // 4. POST /api/v1/teacher/sub-accounts/:id/magic-link — Generate instant login link for student
+  const magicLinkMatch = path.match(/^\/api\/v1\/teacher\/sub-accounts\/([^/]+)\/magic-link$/);
+  if (magicLinkMatch && method === 'POST') {
+    const studentId = magicLinkMatch[1];
+    const student = await env.DB.prepare(
+      `SELECT * FROM users WHERE id = ? AND role_name = 'student'`
+    ).bind(studentId).first();
+
+    if (!student) return errorResponse('Không tìm thấy học sinh.', 404);
+
+    let tokenRow = await env.DB.prepare(
+      `SELECT token FROM magic_login_tokens WHERE user_id = ? AND expires_at > datetime('now') ORDER BY created_at DESC LIMIT 1`
+    ).bind(studentId).first();
+
+    let magicToken = tokenRow?.token;
+    if (!magicToken) {
+      magicToken = generateId('mlt') + '_' + generateJoinCode(12).toLowerCase();
+      const expiresAt = new Date(Date.now() + 30 * 86400 * 1000).toISOString();
+      await env.DB.prepare(
+        `INSERT INTO magic_login_tokens (id, user_id, token, created_by_id, expires_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).bind(generateId('mlid'), studentId, magicToken, teacher.id, expiresAt).run();
+    }
+
+    const origin = new URL(request.url).origin;
+    const magicLink = `${origin}/#magic?token=${magicToken}`;
+
+    return jsonResponse({
+      magic_link: magicLink,
+      token: magicToken,
+      student_name: student.full_name,
+      student_code: student.student_code,
+    });
+  }
+
+  // 5. PUT /api/v1/teacher/sub-accounts/:id/reset-password — Reset student password
   const resetMatch = path.match(/^\/api\/v1\/teacher\/sub-accounts\/([^/]+)\/reset-password$/);
   if (resetMatch && method === 'PUT') {
     const studentId = resetMatch[1];

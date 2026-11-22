@@ -212,6 +212,13 @@ export async function renderVideoPlayerPage(container, lessonIdParam = null) {
           body: { answer: ans },
         });
         answeredIds.add(q.id);
+        if (res.gems_earned > 0) {
+          const topbarGem = document.getElementById('topbar-gem-count');
+          if (topbarGem) {
+            topbarGem.textContent = Number(topbarGem.textContent || 0) + res.gems_earned;
+          }
+          showToast(`💎 +${res.gems_earned} Gems! Trả lời đúng xuất sắc!`, 'success');
+        }
         const fb = document.getElementById('overlay-feedback');
         fb.innerHTML = `
           <div class="pill ${res.is_correct ? 'pill-success' : 'pill-danger'}">
@@ -253,6 +260,13 @@ export async function renderVideoPlayerPage(container, lessonIdParam = null) {
             const st = document.getElementById('player-status-pill');
             st.className = 'pill pill-success';
             st.textContent = 'Đã hoàn thành';
+            if (res.gems_earned > 0) {
+              const topbarGem = document.getElementById('topbar-gem-count');
+              if (topbarGem) {
+                topbarGem.textContent = Number(topbarGem.textContent || 0) + res.gems_earned;
+              }
+              showToast(`🏆 +${res.gems_earned} 💎 Gems! Chúc mừng bạn đã hoàn thành bài giảng!`, 'success');
+            }
           }
         }
       } catch {

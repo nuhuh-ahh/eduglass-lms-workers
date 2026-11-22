@@ -49,7 +49,8 @@ export async function renderVideoStudioPage(container, navigate) {
             <h2 style="margin:0;">Video Learning Studio</h2>
             <p class="muted" style="margin:4px 0 0;">Tải video MP4/WebM, gắn câu hỏi tương tác trực tiếp lên timeline và xem trước bài giảng.</p>
           </div>
-          <div class="flex-row">
+          <div class="flex-row" style="flex-wrap:wrap;gap:8px;">
+            <button class="btn btn-secondary" id="btn-quick-template">✨ Tạo bài mẫu (Chưa có video)</button>
             <button class="btn btn-secondary" id="btn-link-video">🔗 Gắn link Video (URL)</button>
             <button class="btn btn-secondary" id="btn-upload-video">↑ Tải tệp lên</button>
             <button class="btn btn-primary" id="btn-new-lesson">+ Tạo bài giảng</button>
@@ -92,26 +93,40 @@ export async function renderVideoStudioPage(container, navigate) {
                 </div>
               </div>
 
-              <div class="video-stage">
-                ${(() => {
-                  const key = detail.lesson.storage_key || '';
-                  const yt = key.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
-                  const drive = key.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?\/\s]+)/i);
-                  if (yt) {
-                    return `<iframe src="https://www.youtube.com/embed/${yt[1]}?rel=0"
-                      style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowfullscreen></iframe>`;
-                  }
-                  if (drive) {
-                    return `<iframe src="https://drive.google.com/file/d/${drive[1]}/preview"
-                      style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
-                      allow="autoplay" allowfullscreen></iframe>`;
-                  }
-                  return `<video id="studio-video" controls preload="metadata"
-                    src="${detail.lesson.video_id ? `/api/v1/videos/${detail.lesson.video_id}/stream?token=${encodeURIComponent(getToken())}` : ''}"></video>`;
-                })()}
-              </div>
+              ${!detail.lesson.video_id ? `
+                <div class="card" style="padding:34px 20px;text-align:center;background:rgba(99,102,241,0.06);border:2px dashed rgba(99,102,241,0.3);border-radius:14px;margin-bottom:14px;">
+                  <div style="font-size:2.8rem;margin-bottom:8px;">🎬</div>
+                  <h3 style="margin:0 0 6px;">Bài giảng này chưa có video</h3>
+                  <p class="muted" style="margin:0 auto 16px;max-width:460px;font-size:0.84rem;line-height:1.5;">
+                    Đây là bài mẫu đã có sẵn timeline câu hỏi tương tác. Bạn có thể gắn link video từ Google Drive 5TB, YouTube hoặc chọn video đã tải lên từ thư viện.
+                  </p>
+                  <div class="flex-row" style="justify-content:center;gap:10px;flex-wrap:wrap;">
+                    <button class="btn btn-primary btn-sm" id="btn-attach-lesson-link">🔗 Gắn link Video cho bài này</button>
+                    <button class="btn btn-secondary btn-sm" id="btn-attach-existing-vid">📁 Chọn video có sẵn trong thư viện</button>
+                  </div>
+                </div>
+              ` : `
+                <div class="video-stage">
+                  ${(() => {
+                    const key = detail.lesson.storage_key || '';
+                    const yt = key.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+                    const drive = key.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?\/\s]+)/i);
+                    if (yt) {
+                      return `<iframe src="https://www.youtube.com/embed/${yt[1]}?rel=0"
+                        style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen></iframe>`;
+                    }
+                    if (drive) {
+                      return `<iframe src="https://drive.google.com/file/d/${drive[1]}/preview"
+                        style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
+                        allow="autoplay" allowfullscreen></iframe>`;
+                    }
+                    return `<video id="studio-video" controls preload="metadata"
+                      src="${detail.lesson.video_id ? `/api/v1/videos/${detail.lesson.video_id}/stream?token=${encodeURIComponent(getToken())}` : ''}"></video>`;
+                  })()}
+                </div>
+              `}
 
               <div style="margin-top:14px;">
                 <div class="flex-between">
@@ -168,6 +183,103 @@ export async function renderVideoStudioPage(container, navigate) {
       });
       showToast(`Đã cập nhật trạng thái: ${next}`, 'success');
       draw();
+    });
+
+    document.getElementById('btn-quick-template')?.addEventListener('click', async () => {
+      const clsId = classrooms[0]?.id;
+      if (!clsId) {
+        showToast('Vui lòng tạo ít nhất 1 lớp học trước khi tạo bài giảng mẫu!', 'warning');
+        return;
+      }
+      try {
+        const r = await apiRequest('/api/v1/lessons', {
+          method: 'POST',
+          body: {
+            classroom_id: clsId,
+            video_id: null,
+            title: 'Bài giảng mẫu tương tác (Chưa có video)',
+            description: 'Mẫu bài giảng tương tác. Hãy bấm "Gắn link Video" để nạp link Drive/YouTube và chỉnh sửa timeline câu hỏi!',
+            status: 'draft',
+            reward_gems_video: 10,
+          },
+        });
+        const newLid = r.lesson.id;
+        await apiRequest(`/api/v1/lessons/${newLid}/questions`, {
+          method: 'POST',
+          body: {
+            question_type: 'multiple_choice',
+            title: 'Câu hỏi tương tác mẫu 1: Khái niệm cơ bản',
+            description: 'Học sinh chọn đáp án chính xác để vượt qua mốc này.',
+            options: ['Đáp án A (Chính xác)', 'Đáp án B', 'Đáp án C', 'Đáp án D'],
+            correct_answer: 'Đáp án A (Chính xác)',
+            explanation: 'Giải thích chi tiết tại sao đáp án A đúng.',
+            score: 2,
+            is_required: true,
+            timestamp_seconds: 5,
+            reward_gems: 2,
+          },
+        });
+        await apiRequest(`/api/v1/lessons/${newLid}/questions`, {
+          method: 'POST',
+          body: {
+            question_type: 'true_false',
+            title: 'Câu hỏi tương tác mẫu 2: Bạn đã nắm vững nội dung này chưa?',
+            description: 'Chọn Đúng hoặc Sai.',
+            options: ['Đúng', 'Sai'],
+            correct_answer: 'Đúng',
+            explanation: 'Chúc mừng bạn đã trả lời đúng câu hỏi kiểm tra!',
+            score: 2,
+            is_required: false,
+            timestamp_seconds: 15,
+            reward_gems: 2,
+          },
+        });
+        selectedLessonId = newLid;
+        showToast('✨ Đã tạo bài giảng mẫu thành công! Hãy bấm "Gắn link Video" để đưa link video vào nhé!', 'success');
+        draw();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('btn-attach-lesson-link')?.addEventListener('click', () => {
+      document.getElementById('btn-link-video')?.click();
+    });
+
+    document.getElementById('btn-attach-existing-vid')?.addEventListener('click', () => {
+      if (videos.length === 0) {
+        showToast('Thư viện chưa có video nào, hãy bấm nút "Gắn link Video" hoặc "Tải tệp lên" trước nhé!', 'warning');
+        return;
+      }
+      openModal('Chọn video từ thư viện gắn vào bài này', `
+        <form id="attach-vid-form">
+          <div class="field">
+            <label>Chọn video từ thư viện</label>
+            <select class="select" id="av-select">
+              ${videos.map((v) => `<option value="${v.id}">${escapeHtml(v.title)} (${Math.round(v.duration_seconds)}s)</option>`).join('')}
+            </select>
+          </div>
+          <div class="flex-end">
+            <button class="btn btn-primary" type="submit">Gắn video</button>
+          </div>
+        </form>
+      `, (slot, close) => {
+        slot.querySelector('#attach-vid-form').addEventListener('submit', async (ev) => {
+          ev.preventDefault();
+          const vidId = slot.querySelector('#av-select').value;
+          try {
+            await apiRequest(`/api/v1/lessons/${selectedLessonId}`, {
+              method: 'PUT',
+              body: { video_id: vidId },
+            });
+            close();
+            showToast('Đã gắn video vào bài giảng thành công!', 'success');
+            draw();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        });
+      });
     });
 
     document.getElementById('btn-link-video')?.addEventListener('click', () => {
@@ -478,6 +590,9 @@ export async function renderVideoStudioPage(container, navigate) {
           </div>
           <div class="field"><label>Tên bài giảng</label><input class="input" id="nl-title" required /></div>
           <div class="field"><label>Mô tả mục tiêu bài học</label><textarea class="textarea" id="nl-desc" placeholder="Giới thiệu nội dung trọng tâm của video..."></textarea></div>
+          <div class="field"><label>💎 Gems thưởng khi hoàn thành video (Mặc định: 10)</label>
+            <input class="input" id="nl-gems" type="number" min="0" value="10" />
+          </div>
           <div class="field"><label>Trạng thái</label>
             <select class="select" id="nl-status"><option value="published">Xuất bản ngay</option><option value="draft">Bản nháp</option></select>
           </div>
@@ -495,6 +610,7 @@ export async function renderVideoStudioPage(container, navigate) {
                 title: slot.querySelector('#nl-title').value,
                 description: slot.querySelector('#nl-desc').value,
                 status: slot.querySelector('#nl-status').value,
+                reward_gems_video: Number(slot.querySelector('#nl-gems').value || 10),
               },
             });
             selectedLessonId = r.lesson.id;
@@ -525,8 +641,9 @@ export async function renderVideoStudioPage(container, navigate) {
           <div class="field"><label>Giải thích sau khi trả lời</label><input class="input" id="vq-exp" /></div>
           <div class="grid-2">
             <div class="field"><label>Điểm số</label><input class="input" id="vq-score" type="number" step="0.5" value="2" /></div>
-            <div class="field"><label>Giới hạn thời gian (giây, tùy chọn)</label><input class="input" id="vq-limit" type="number" placeholder="30" /></div>
+            <div class="field"><label>💎 Gems thưởng khi trả lời đúng</label><input class="input" id="vq-gems" type="number" min="0" value="2" /></div>
           </div>
+          <div class="field"><label>Giới hạn thời gian (giây, tùy chọn)</label><input class="input" id="vq-limit" type="number" placeholder="30" /></div>
           <label class="flex-row" style="margin-bottom:14px;"><input type="checkbox" id="vq-req" checked /> <span>Câu hỏi bắt buộc (học sinh không thể bỏ qua)</span></label>
           <button class="btn btn-primary" type="submit">Lưu câu hỏi</button>
         </form>
@@ -555,6 +672,7 @@ export async function renderVideoStudioPage(container, navigate) {
                 is_required: slot.querySelector('#vq-req').checked,
                 timestamp_seconds: Number(slot.querySelector('#vq-ts').value || 0),
                 time_limit_seconds: slot.querySelector('#vq-limit').value ? Number(slot.querySelector('#vq-limit').value) : null,
+                reward_gems: Number(slot.querySelector('#vq-gems').value || 2),
               },
             });
             close();

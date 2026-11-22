@@ -266,13 +266,14 @@ export async function handleVideoLearningRoutes(request, env, path) {
     const body = await parseJsonBody(request);
     const lid = generateId('les');
     const st = ['draft', 'published', 'archived'].includes(body.status) ? body.status : 'draft';
+    const rewardGems = Math.max(0, Number(body.reward_gems_video ?? 10));
     await env.DB.prepare(
-      `INSERT INTO lessons (id, classroom_id, teacher_id, video_id, title, description, thumbnail_url, status, allow_continue_on_wrong, due_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO lessons (id, classroom_id, teacher_id, video_id, title, description, thumbnail_url, status, allow_continue_on_wrong, due_date, reward_gems_video)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       lid, body.classroom_id, user.id, body.video_id || null, sanitizeText(body.title),
       sanitizeText(body.description || ''), body.thumbnail_url || '', st,
-      body.allow_continue_on_wrong === false ? 0 : 1, body.due_date || null
+      body.allow_continue_on_wrong === false ? 0 : 1, body.due_date || null, rewardGems
     ).run();
     const lesson = await env.DB.prepare('SELECT * FROM lessons WHERE id = ?').bind(lid).first();
     return jsonResponse({ lesson }, 201);
@@ -312,13 +313,17 @@ export async function handleVideoLearningRoutes(request, env, path) {
     const cur = await env.DB.prepare('SELECT * FROM lessons WHERE id = ?').bind(lid).first();
     if (!cur) return errorResponse('Không tìm thấy bài giảng.', 404);
     const body = await parseJsonBody(request);
+    const nextVideoId = body.video_id !== undefined ? (body.video_id || null) : cur.video_id;
+    const nextGems = body.reward_gems_video !== undefined ? Number(body.reward_gems_video) : (cur.reward_gems_video || 10);
     await env.DB.prepare(
-      `UPDATE lessons SET title = ?, description = ?, status = ?, version = ?, updated_at = datetime('now') WHERE id = ?`
+      `UPDATE lessons SET title = ?, description = ?, status = ?, version = ?, video_id = ?, reward_gems_video = ?, updated_at = datetime('now') WHERE id = ?`
     ).bind(
       body.title ? sanitizeText(body.title) : cur.title,
       body.description !== undefined ? sanitizeText(body.description) : cur.description,
       ['draft', 'published', 'archived'].includes(body.status) ? body.status : cur.status,
       cur.version + (body.bump_version ? 1 : 0),
+      nextVideoId,
+      nextGems,
       lid
     ).run();
     return jsonResponse({ lesson: await env.DB.prepare('SELECT * FROM lessons WHERE id = ?').bind(lid).first() });
@@ -332,14 +337,15 @@ export async function handleVideoLearningRoutes(request, env, path) {
     const lid = addQMatch[1];
     const body = await parseJsonBody(request);
     const qid = generateId('vq');
+    const rewardGems = Math.max(0, Number(body.reward_gems ?? 2));
     await env.DB.prepare(
-      `INSERT INTO video_questions (id, lesson_id, question_type, title, description, options_json, correct_answer_json, explanation, score, is_required, timestamp_seconds, time_limit_seconds, order_index)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO video_questions (id, lesson_id, question_type, title, description, options_json, correct_answer_json, explanation, score, is_required, timestamp_seconds, time_limit_seconds, order_index, reward_gems)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       qid, lid, body.question_type || 'multiple_choice', sanitizeText(body.title), sanitizeText(body.description || ''),
       JSON.stringify(body.options || []), JSON.stringify(body.correct_answer ?? ''), sanitizeText(body.explanation || ''),
       Number(body.score ?? 1), body.is_required === false ? 0 : 1, Number(body.timestamp_seconds || 0),
-      body.time_limit_seconds ?? null, Number(body.order_index || 0)
+      body.time_limit_seconds ?? null, Number(body.order_index || 0), rewardGems
     ).run();
     return jsonResponse({ question: { id: qid, lesson_id: lid, title: sanitizeText(body.title) } }, 201);
   }
@@ -349,12 +355,14 @@ export async function handleVideoLearningRoutes(request, env, path) {
     const roleErr = requireRoles(user, ['teacher', 'school_admin', 'super_admin']);
     if (roleErr) return roleErr;
     const body = await parseJsonBody(request);
+    const rewardGems = Math.max(0, Number(body.reward_gems ?? 2));
     await env.DB.prepare(
-      `UPDATE video_questions SET question_type = ?, title = ?, description = ?, options_json = ?, correct_answer_json = ?, explanation = ?, score = ?, is_required = ?, timestamp_seconds = ?, updated_at = datetime('now') WHERE id = ? AND lesson_id = ?`
+      `UPDATE video_questions SET question_type = ?, title = ?, description = ?, options_json = ?, correct_answer_json = ?, explanation = ?, score = ?, is_required = ?, timestamp_seconds = ?, reward_gems = ?, updated_at = datetime('now') WHERE id = ? AND lesson_id = ?`
     ).bind(
       body.question_type || 'multiple_choice', sanitizeText(body.title), sanitizeText(body.description || ''),
       JSON.stringify(body.options || []), JSON.stringify(body.correct_answer ?? ''), sanitizeText(body.explanation || ''),
       Number(body.score ?? 1), body.is_required === false ? 0 : 1, Number(body.timestamp_seconds || 0),
+      rewardGems,
       updQMatch[2], updQMatch[1]
     ).run();
     return jsonResponse({ message: 'Đã cập nhật câu hỏi.' });
@@ -467,10 +475,20 @@ export async function handleVideoLearningRoutes(request, env, path) {
     }
     const wasDone = Boolean(session.is_completed);
     const res = await processWatchHeartbeat(env, session, lid, user.id, body.segment_start, body.segment_end, body.current_time, les.duration_seconds);
+    let gemsEarned = 0;
     if (res.is_completed && !wasDone) {
-      await createNotification(env, user.id, 'lesson_completed', 'Hoàn thành bài giảng', `Bạn đã hoàn thành '${les.title}'.`, `#player/${lid}`);
+      const rewardGems = Math.max(0, Number(les.reward_gems_video ?? 10));
+      if (rewardGems > 0) {
+        await env.DB.prepare('UPDATE users SET gem_balance = gem_balance + ? WHERE id = ?').bind(rewardGems, user.id).run();
+        await env.DB.prepare('UPDATE video_watch_sessions SET video_gems_awarded = ? WHERE id = ?').bind(rewardGems, session.id).run();
+        await env.DB.prepare(
+          'INSERT INTO gem_transactions (id, user_id, amount, source, reference_id) VALUES (?, ?, ?, ?, ?)'
+        ).bind(generateId('gtx'), user.id, rewardGems, 'video_completion', lid).run();
+        gemsEarned = rewardGems;
+      }
+      await createNotification(env, user.id, 'lesson_completed', 'Hoàn thành bài giảng', `Bạn đã hoàn thành '${les.title}' và nhận được ${rewardGems} 💎 Gems!`, `#player/${lid}`);
     }
-    return jsonResponse(res);
+    return jsonResponse({ ...res, gems_earned: gemsEarned });
   }
 
   const ansMatch = path.match(/^\/api\/v1\/lessons\/([^/]+)\/questions\/([^/]+)\/answer$/);
@@ -488,9 +506,28 @@ export async function handleVideoLearningRoutes(request, env, path) {
     }
     const correctAns = JSON.parse(q.correct_answer_json || 'null');
     const { isCorrect, scoreEarned } = gradeQuestion(q.question_type, correctAns, body.answer, q.score);
+
+    let gemsEarned = 0;
+    if (isCorrect) {
+      const prevAttempt = await env.DB.prepare(
+        'SELECT gems_awarded FROM question_attempts WHERE session_id = ? AND question_id = ? AND gems_awarded > 0'
+      ).bind(session.id, qid).first();
+
+      if (!prevAttempt) {
+        const qGems = Math.max(0, Number(q.reward_gems ?? 2));
+        if (qGems > 0) {
+          await env.DB.prepare('UPDATE users SET gem_balance = gem_balance + ? WHERE id = ?').bind(qGems, user.id).run();
+          await env.DB.prepare(
+            'INSERT INTO gem_transactions (id, user_id, amount, source, reference_id) VALUES (?, ?, ?, ?, ?)'
+          ).bind(generateId('gtx'), user.id, qGems, 'question_correct', qid).run();
+          gemsEarned = qGems;
+        }
+      }
+    }
+
     await env.DB.prepare(
-      'INSERT INTO question_attempts (id, session_id, question_id, student_id, answer_json, is_correct, score_earned) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(generateId('qa'), session.id, qid, user.id, JSON.stringify(body.answer ?? null), isCorrect ? 1 : 0, scoreEarned).run();
+      'INSERT INTO question_attempts (id, session_id, question_id, student_id, answer_json, is_correct, score_earned, gems_awarded) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(generateId('qa'), session.id, qid, user.id, JSON.stringify(body.answer ?? null), isCorrect ? 1 : 0, scoreEarned, gemsEarned).run();
     return jsonResponse({
       question_id: qid,
       is_correct: isCorrect,
@@ -499,6 +536,7 @@ export async function handleVideoLearningRoutes(request, env, path) {
       explanation: q.explanation,
       correct_answer: correctAns,
       can_continue: Boolean(isCorrect || les.allow_continue_on_wrong),
+      gems_earned: gemsEarned,
     });
   }
 

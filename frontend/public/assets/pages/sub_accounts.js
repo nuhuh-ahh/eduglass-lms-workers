@@ -152,6 +152,9 @@ export async function renderSubAccountsPage(container, navigate, onAccountSwitch
                     </td>
                     <td style="text-align:right;">
                       <div class="flex-row" style="justify-content:flex-end;gap:6px;">
+                        <button class="btn btn-secondary btn-sm" data-magic-link="${s.id}" data-name="${escapeHtml(s.full_name)}" title="Lấy link đăng nhập nhanh gửi cho học sinh">
+                          🔗 Link nhanh
+                        </button>
                         <button class="btn btn-primary btn-sm" data-login-as="${s.id}" data-name="${escapeHtml(s.full_name)}" title="Đăng nhập trực tiếp với tư cách học sinh này">
                           🔑 Đăng nhập
                         </button>
@@ -194,6 +197,30 @@ export async function renderSubAccountsPage(container, navigate, onAccountSwitch
         }).catch(() => {
           showToast(`Mật khẩu: ${val}`, 'info');
         });
+      });
+    });
+
+    // Magic Login Link for Student
+    container.querySelectorAll('[data-magic-link]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const studentId = btn.dataset.magicLink;
+        const studentName = btn.dataset.name;
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang tạo...';
+        try {
+          const res = await apiRequest(`/api/v1/teacher/sub-accounts/${studentId}/magic-link`, { method: 'POST' });
+          await navigator.clipboard.writeText(res.magic_link);
+          showToast(`Đã sao chép link đăng nhập nhanh của ${studentName}! Gửi link này cho học sinh để bấm vào là tự động đăng nhập!`, 'success');
+          btn.textContent = '✅ Đã sao chép!';
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = '🔗 Link nhanh';
+          }, 3000);
+        } catch (err) {
+          showToast(err.message, 'error');
+          btn.disabled = false;
+          btn.textContent = '🔗 Link nhanh';
+        }
       });
     });
 

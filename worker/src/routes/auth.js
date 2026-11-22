@@ -134,8 +134,71 @@ export async function handleAuthRoutes(request, env, path) {
         avatar_url: user.avatar_url,
         bio: user.bio,
         email_verified: Boolean(user.email_verified),
+        gem_balance: user.gem_balance || 0,
       },
       preferences: prefs,
+    });
+  }
+
+  if (path === '/api/v1/auth/magic-login' && method === 'POST') {
+    const body = await parseJsonBody(request);
+    const token = String(body.token || '').trim();
+    if (!token) return errorResponse('Thiếu mã đăng nhập nhanh.', 400);
+
+    const row = await env.DB.prepare(
+      `SELECT mlt.*, u.id AS user_id, u.email, u.full_name, u.display_name, u.role_name, u.school_id, u.student_code, u.is_active, u.gem_balance,
+              t.display_name AS teacher_name
+       FROM magic_login_tokens mlt
+       JOIN users u ON u.id = mlt.user_id
+       LEFT JOIN users t ON t.id = mlt.created_by_id
+       WHERE mlt.token = ? AND mlt.expires_at > datetime('now')`
+    ).bind(token).first();
+
+    if (!row) {
+      return errorResponse('Link đăng nhập không hợp lệ hoặc đã hết hạn (sau 30 ngày). Vui lòng xin lại từ giáo viên.', 401);
+    }
+    if (!row.is_active) {
+      return errorResponse('Tài khoản học sinh này đã bị khóa.', 403);
+    }
+
+    const jti = generateId('jti');
+    const { token: jwtToken, exp } = await createAccessToken(getSecret(env), row.user_id, row.role_name, jti, true, env);
+
+    await env.DB.prepare(
+      `INSERT INTO user_sessions (id, user_id, token_jti, user_agent, ip_address, remember_me, expires_at)
+       VALUES (?, ?, ?, ?, ?, 1, ?)`
+    ).bind(
+      generateId('ses'),
+      row.user_id,
+      jti,
+      `Magic Login link from ${row.teacher_name || 'Teacher'}`,
+      request.headers.get('CF-Connecting-IP') || '',
+      new Date(exp * 1000).toISOString()
+    ).run();
+
+    await env.DB.prepare(
+      `UPDATE users SET last_login_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`
+    ).bind(row.user_id).run();
+
+    await writeAuditLog(env, 'auth.magic_login', 'user', row.user_id, row.user_id);
+    const prefs = await getPrefs(env, row.user_id);
+
+    return jsonResponse({
+      access_token: jwtToken,
+      token_type: 'bearer',
+      user: {
+        id: row.user_id,
+        email: row.email,
+        full_name: row.full_name,
+        display_name: row.display_name,
+        role_name: row.role_name,
+        school_id: row.school_id,
+        student_code: row.student_code,
+        gem_balance: row.gem_balance || 0,
+      },
+      preferences: prefs,
+      magic_login: true,
+      teacher_name: row.teacher_name,
     });
   }
 

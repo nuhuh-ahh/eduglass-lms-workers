@@ -190,7 +190,12 @@ async function renderAppShell() {
         ` : ''}
 
         <header class="topbar">
-          <div class="flex-row">
+          <div class="flex-row" style="gap:10px;">
+            <div class="gem-badge" id="topbar-gem-badge" title="Gems bạn đã tích lũy từ học tập và làm bài">
+              <span>💎</span>
+              <span id="topbar-gem-count" style="font-weight:800;font-family:var(--font-mono);">${state.user.gem_balance || 0}</span>
+              <span style="font-size:0.75rem;opacity:0.85;">Gems</span>
+            </div>
             <span class="pill pill-info" id="topbar-theme-pill">${isGlass ? '✦ Liquid Glass' : '▣ Classic LMS'}</span>
             <span class="muted" style="font-size:0.84rem;">${escapeHtml(state.user.email)}</span>
           </div>
@@ -267,7 +272,32 @@ async function renderAppShell() {
 }
 
 async function init() {
-  const hash = (window.location.hash || '#dashboard').replace(/^#/, '');
+  const rawHash = window.location.hash || '#dashboard';
+  if (rawHash.startsWith('#magic')) {
+    const queryPart = rawHash.includes('?') ? rawHash.split('?')[1] : '';
+    const params = new URLSearchParams(queryPart);
+    const magicToken = params.get('token');
+    if (magicToken) {
+      try {
+        const res = await apiRequest('/api/v1/auth/magic-login', {
+          method: 'POST',
+          body: { token: magicToken },
+        });
+        setToken(res.access_token);
+        state.user = res.user;
+        state.preferences = res.preferences;
+        showToast(`Chào mừng bạn! Đăng nhập thành công với tài khoản học sinh: ${res.user.full_name}!`, 'success');
+        window.location.hash = '#dashboard';
+        state.route = 'dashboard';
+        await renderAppShell();
+        return;
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+  }
+
+  const hash = rawHash.replace(/^#/, '');
   const [route, param] = hash.split('/');
   if (route) {
     state.route = route;
