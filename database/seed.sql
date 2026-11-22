@@ -23,3 +23,24 @@ INSERT OR IGNORE INTO module_registry (id, name, version, description, dependenc
 INSERT OR IGNORE INTO module_registry (id, name, version, description, dependencies_json, is_enabled, is_core, status, manifest_json) VALUES ('report_export', 'Report Export Module', '1.0.0', 'Xuất báo cáo CSV, Excel (.xlsx) và PDF thuần JS trực tiếp từ D1.', '["analytics"]', 1, 0, 'healthy', '{"id":"report_export","name":"Report Export Module","version":"1.0.0","core":false,"dependencies":["analytics"],"apiPrefix":"/api/v1/reports","description":"Xuất báo cáo CSV, Excel (.xlsx) và PDF thuần JS trực tiếp từ D1."}');
 INSERT OR IGNORE INTO module_registry (id, name, version, description, dependencies_json, is_enabled, is_core, status, manifest_json) VALUES ('appearance', 'Appearance Module', '1.0.0', 'Giao diện kép Liquid Glass (iOS 27) & Classic Education đồng bộ tài khoản.', '["authentication"]', 1, 1, 'healthy', '{"id":"appearance","name":"Appearance Module","version":"1.0.0","core":true,"dependencies":["authentication"],"apiPrefix":"/api/v1/preferences","description":"Giao diện kép Liquid Glass (iOS 27) & Classic Education đồng bộ tài khoản."}');
 INSERT OR IGNORE INTO module_registry (id, name, version, description, dependencies_json, is_enabled, is_core, status, manifest_json) VALUES ('administration', 'Administration Module', '1.0.0', 'Bảng điều khiển Super Admin, trường học, audit logs, sức khỏe D1 & R2.', '["authentication","user_management"]', 1, 1, 'healthy', '{"id":"administration","name":"Administration Module","version":"1.0.0","core":true,"dependencies":["authentication","user_management"],"apiPrefix":"/api/v1/admin","description":"Bảng điều khiển Super Admin, trường học, audit logs, sức khỏe D1 & R2."}');
+
+-- Super Admin Account (admin / admin123)
+INSERT OR IGNORE INTO users (
+  id, school_id, role_id, role_name, email, password_hash, full_name, display_name, email_verified, is_active, created_at, updated_at
+) VALUES (
+  'usr_admin_default',
+  NULL,
+  'role_super_admin',
+  'super_admin',
+  'admin',
+  'pbkdf2_sha256$100000$JAOVgryXKbJyYt+2NeQ15g==$IVoRRCdRKCXLYPqMAhB+hjzW0SwjrYVxRQSTZF3p6ws=',
+  'Quản Trị Viên Hệ Thống',
+  'admin',
+  1,
+  1,
+  datetime('now'),
+  datetime('now')
+);
+
+INSERT OR IGNORE INTO user_preferences (user_id, theme, language, sound_enabled) VALUES
+  ('usr_admin_default', 'liquid-glass', 'vi', 1);
