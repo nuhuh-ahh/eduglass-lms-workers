@@ -4,12 +4,52 @@
 import { apiRequest } from '../core/api.js';
 import { escapeHtml, state } from '../core/store.js';
 import { renderBarChart, renderDonutMetric } from '../components/charts.js';
+import { getGDriveState } from '../core/gdrive.js';
+
+function renderGDriveQuotaCard(gdrive) {
+  return `
+    <div class="card" style="border:1px solid rgba(10,132,255,0.25);background:linear-gradient(135deg, rgba(10,132,255,0.06), rgba(48,209,88,0.04));padding:16px 20px;">
+      <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.06);font-size:22px;">
+            📁
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:1.02rem;display:flex;align-items:center;gap:8px;">
+              Lưu Trữ Google Drive (Gói 5 TB)
+              <span class="pill ${gdrive.isConnected ? 'pill-success' : 'pill-info'}" style="font-size:0.75rem;">
+                ${gdrive.isConnected ? '● Đã kết nối' : '● Sẵn sàng (5 TB)'}
+              </span>
+            </div>
+            <div class="muted" style="font-size:0.82rem;margin-top:2px;">
+              ${escapeHtml(gdrive.user.email)} • ${escapeHtml(gdrive.quota.planName)}
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" data-gdrive-nav style="gap:6px;">
+          📁 Mở kho tệp Google Drive
+        </button>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="flex-between" style="font-size:0.84rem;margin-bottom:6px;">
+          <span><strong>Tổng dung lượng đã dùng:</strong> ${gdrive.quota.usedStr} / ${gdrive.quota.totalStr} (${gdrive.quota.pct}%)</span>
+          <span class="muted">Còn trống: ${gdrive.quota.freeStr}</span>
+        </div>
+        <div class="progress-track" style="height:9px;background:rgba(255,255,255,0.35);border-radius:999px;overflow:hidden;">
+          <div class="progress-fill" style="width:${gdrive.quota.pct}%;height:100%;background:linear-gradient(90deg, #0A84FF, #30D158);border-radius:999px;transition:width 0.6s cubic-bezier(0.16,1,0.3,1);"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 export async function renderDashboardPage(container, navigate) {
   container.innerHTML = `<div class="card"><div class="skeleton" style="height:24px;width:40%;"></div><div class="skeleton" style="height:120px;margin-top:14px;"></div></div>`;
 
   try {
     const data = await apiRequest('/api/v1/dashboard/overview');
+    const gdrive = getGDriveState();
 
     if (data.role === 'student') {
       const w = data.widgets;
@@ -22,6 +62,8 @@ export async function renderDashboardPage(container, navigate) {
             </div>
             <button class="btn btn-primary" id="dash-go-classes">Tham gia lớp học</button>
           </div>
+
+          ${renderGDriveQuotaCard(gdrive)}
 
           <div class="grid-kpi">
             <div class="card"><div class="kpi-label">Khóa học của tôi</div><div class="kpi-value">${w.my_courses}</div></div>
@@ -74,6 +116,9 @@ export async function renderDashboardPage(container, navigate) {
       container.querySelectorAll('[data-play-lesson]').forEach((btn) => {
         btn.addEventListener('click', () => navigate('player', btn.dataset.playLesson));
       });
+      container.querySelectorAll('[data-gdrive-nav]').forEach((btn) => {
+        btn.addEventListener('click', () => navigate('gdrive'));
+      });
       return;
     }
 
@@ -91,6 +136,8 @@ export async function renderDashboardPage(container, navigate) {
             <button class="btn btn-primary" id="dash-open-studio">Mở Video Studio</button>
           </div>
         </div>
+
+        ${renderGDriveQuotaCard(gdrive)}
 
         <div class="grid-kpi">
           <div class="card"><div class="kpi-label">Tổng học sinh</div><div class="kpi-value">${w.total_students}</div></div>
@@ -136,6 +183,9 @@ export async function renderDashboardPage(container, navigate) {
 
     document.getElementById('dash-new-class')?.addEventListener('click', () => navigate('classrooms'));
     document.getElementById('dash-open-studio')?.addEventListener('click', () => navigate('studio'));
+    container.querySelectorAll('[data-gdrive-nav]').forEach((btn) => {
+      btn.addEventListener('click', () => navigate('gdrive'));
+    });
   } catch (err) {
     container.innerHTML = `<div class="card"><p class="muted">Không thể tải dashboard: ${escapeHtml(err.message)}</p></div>`;
   }

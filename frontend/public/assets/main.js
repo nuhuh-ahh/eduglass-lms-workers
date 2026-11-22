@@ -13,6 +13,7 @@ import { renderAnalyticsPage } from './pages/analytics.js';
 import { renderCalendarPage, renderNotificationsPage } from './pages/calendar_notifications.js';
 import { renderAdminPage, renderModulesPage, renderSettingsPage } from './pages/settings_admin.js';
 import { renderSubAccountsPage } from './pages/sub_accounts.js';
+import { renderGDriveExplorerPage } from './pages/gdrive_explorer.js';
 
 const appRoot = document.getElementById('app');
 
@@ -62,6 +63,7 @@ function getNavItems(role) {
     { id: 'classrooms', label: t('nav.classrooms', 'Lớp học'), icon: '▦' },
     ...(isStaff ? [{ id: 'subaccounts', label: 'Tài khoản Học sinh', icon: '👥' }] : []),
     ...(isStaff ? [{ id: 'studio', label: t('nav.studio', 'Video Studio'), icon: '▶' }] : []),
+    { id: 'gdrive', label: 'Google Drive (5TB)', icon: '📁' },
     { id: 'player', label: t('nav.player', 'Học Video'), icon: '◉' },
     { id: 'quizzes', label: t('nav.quizzes', 'Kiểm tra & Bài tập'), icon: '✎' },
     ...(isStaff ? [{ id: 'analytics', label: t('nav.analytics', 'Thống kê & Báo cáo'), icon: '◔' }] : []),
@@ -95,6 +97,7 @@ async function renderActiveView() {
     case 'classrooms': await renderClassroomsPage(slot, navigate, state.routeParam); break;
     case 'subaccounts': await renderSubAccountsPage(slot, navigate, renderAppShell); break;
     case 'studio': await renderVideoStudioPage(slot, navigate); break;
+    case 'gdrive': await renderGDriveExplorerPage(slot, navigate, state.routeParam); break;
     case 'player': await renderVideoPlayerPage(slot, state.routeParam); break;
     case 'quizzes': await renderQuizzesPage(slot); break;
     case 'analytics': await renderAnalyticsPage(slot); break;

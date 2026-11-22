@@ -33,7 +33,7 @@ INSERT OR IGNORE INTO users (
   'role_super_admin',
   'super_admin',
   'admin',
-  'pbkdf2_sha256$100000$JAOVgryXKbJyYt+2NeQ15g==$IVoRRCdRKCXLYPqMAhB+hjzW0SwjrYVxRQSTZF3p6ws=',
+  'pbkdf2_sha256$100000$xktXahRPtZNbznSVRqUetA==$4+IBAgKaGSiFAH7cm1zrDIQg7HQA8emumvIrdcSy2aY=',
   'Quản Trị Viên Hệ Thống',
   'admin',
   1,
