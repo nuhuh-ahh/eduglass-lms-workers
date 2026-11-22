@@ -22,6 +22,14 @@ export default {
       return new Response(null, { status: 204, headers: SECURITY_HEADERS });
     }
 
+    // Google Site Verification (HTML file verification)
+    if (path === '/googleaebfce06abc63097.html') {
+      return new Response('google-site-verification: googleaebfce06abc63097.html', {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
+
     // Health check
     if (path === '/api/health') {
       return jsonResponse({
