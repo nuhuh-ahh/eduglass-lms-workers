@@ -35,11 +35,14 @@ export function getGDriveState() {
     try {
       const q = JSON.parse(rawQuota);
       const isUnlimited = q.totalBytes === null || q.totalBytes === undefined || q.totalBytes <= 0;
-      const pct = isUnlimited ? 0 : Math.min(100, Math.round((q.usedBytes / q.totalBytes) * 100));
+      const rawPct = q.totalBytes > 0 ? (q.usedBytes / q.totalBytes) * 100 : 0;
+      const pct = isUnlimited ? 0 : Math.min(100, Math.max(0, rawPct));
+      const pctStr = isUnlimited ? '' : (rawPct > 0 && rawPct < 0.1 ? `${rawPct.toFixed(2)}%` : `${rawPct.toFixed(1)}%`);
       quota = {
         totalBytes: q.totalBytes,
         usedBytes: q.usedBytes,
         pct,
+        pctStr,
         usedStr: formatBytes(q.usedBytes),
         totalStr: formatBytes(q.totalBytes),
         freeStr: isUnlimited ? 'Không giới hạn' : formatBytes(Math.max(0, q.totalBytes - q.usedBytes)),

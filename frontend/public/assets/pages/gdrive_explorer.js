@@ -309,7 +309,7 @@ export async function renderGDriveExplorerPage(container, navigate, initialFolde
           ${gdrive.quota ? `
             <div style="margin-top:16px;">
               <div class="flex-between" style="font-size:0.86rem;margin-bottom:6px;">
-                <span><strong>Tổng dung lượng đã dùng:</strong> ${gdrive.quota.usedStr} / ${gdrive.quota.totalStr} ${gdrive.quota.isUnlimited ? '' : `(${gdrive.quota.pct}%)`}</span>
+                <span><strong>Tổng dung lượng đã dùng:</strong> ${gdrive.quota.usedStr} / ${gdrive.quota.totalStr} ${gdrive.quota.isUnlimited ? '' : `(${gdrive.quota.pctStr || `${gdrive.quota.pct}%`})`}</span>
                 <span class="muted">Còn trống: ${gdrive.quota.freeStr}</span>
               </div>
               ${!gdrive.quota.isUnlimited ? `

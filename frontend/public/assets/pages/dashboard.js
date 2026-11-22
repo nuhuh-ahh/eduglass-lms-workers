@@ -58,7 +58,7 @@ function renderGDriveQuotaCard(gdrive) {
 
       <div style="margin-top:14px;">
         <div class="flex-between" style="font-size:0.84rem;margin-bottom:6px;">
-          <span><strong>Tổng dung lượng đã dùng:</strong> ${q.usedStr} / ${q.totalStr} ${q.isUnlimited ? '' : `(${q.pct}%)`}</span>
+          <span><strong>Tổng dung lượng đã dùng:</strong> ${q.usedStr} / ${q.totalStr} ${q.isUnlimited ? '' : `(${q.pctStr || `${q.pct}%`})`}</span>
           <span class="muted">Còn trống: ${q.freeStr}</span>
         </div>
         ${!q.isUnlimited ? `
