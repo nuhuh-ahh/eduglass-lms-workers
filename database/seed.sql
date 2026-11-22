@@ -42,5 +42,5 @@ INSERT OR IGNORE INTO users (
   datetime('now')
 );
 
-INSERT OR IGNORE INTO user_preferences (user_id, theme, language, sound_enabled) VALUES
-  ('usr_admin_default', 'liquid-glass', 'vi', 1);
+INSERT OR IGNORE INTO user_preferences (user_id) VALUES
+  ('usr_admin_default');
