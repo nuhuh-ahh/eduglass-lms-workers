@@ -1,0 +1,5 @@
+# Cloudflare Workers Local Secrets (.dev.vars)
+# Copy this file to .dev.vars for local `wrangler dev`.
+# For production, run: npx wrangler secret put EDUGLASS_SECRET_KEY
+
+EDUGLASS_SECRET_KEY=CHANGE_ME_TO_A_SECURE_48_CHAR_RANDOM_SECRET_KEY

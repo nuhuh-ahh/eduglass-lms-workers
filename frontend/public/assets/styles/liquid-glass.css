@@ -1,0 +1,188 @@
+/* ==========================================================================
+   EduGlass LMS — LIQUID GLASS MODE (DEFAULT — iOS 27 Concept v2)
+   True multi-layer refraction, pointer-reactive specular sheen,
+   frosted depth elevation, and crisp contrast across all wallpapers.
+   ========================================================================== */
+
+html[data-theme="liquid-glass"] {
+  --bg-canvas: #DCEBFF;
+  --text-primary: #0B132B;
+  --text-secondary: #223354;
+  --text-muted: #4E6080;
+  --option-bg: #FFFFFF;
+  --option-fg: #0B132B;
+
+  --glass-l1: rgba(255, 255, 255, calc(var(--glass-opacity) * 0.56));
+  --glass-l2: rgba(255, 255, 255, calc(var(--glass-opacity) * 0.78));
+  --glass-l3: rgba(255, 255, 255, calc(var(--glass-opacity) * 0.94));
+  --surface-subtle: rgba(255, 255, 255, 0.44);
+  --input-bg: rgba(255, 255, 255, 0.68);
+
+  --border-subtle: rgba(255, 255, 255, 0.62);
+  --border-highlight: rgba(255, 255, 255, 0.95);
+  --specular-color: rgba(255, 255, 255, 0.42);
+  --shadow-glass: 0 14px 36px rgba(15, 35, 80, 0.10), 0 2px 6px rgba(15, 35, 80, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  --shadow-float: 0 24px 52px rgba(15, 35, 80, 0.16), 0 4px 12px rgba(15, 35, 80, 0.06), inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
+}
+
+html[data-theme="liquid-glass"] .wallpaper-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-wallpaper);
+  overflow: hidden;
+  pointer-events: none;
+  transition: background 0.6s ease;
+}
+
+html[data-theme="liquid-glass"][data-wallpaper="aurora-prism"] .wallpaper-layer {
+  background: radial-gradient(circle at 14% 18%, #BCE3FF 0%, transparent 48%),
+              radial-gradient(circle at 86% 16%, #F2D2FF 0%, transparent 45%),
+              radial-gradient(circle at 52% 86%, #B8F5E4 0%, transparent 52%),
+              linear-gradient(135deg, #E8F3FF 0%, #F4ECFF 52%, #E2FAF4 100%);
+}
+
+html[data-theme="liquid-glass"][data-wallpaper="pastel-sakura"] .wallpaper-layer {
+  background: radial-gradient(circle at 18% 24%, #FFCBE2 0%, transparent 48%),
+              radial-gradient(circle at 82% 76%, #D2DFFF 0%, transparent 50%),
+              linear-gradient(140deg, #FFF0F7 0%, #F2EEFF 54%, #E8F4FF 100%);
+}
+
+html[data-theme="liquid-glass"][data-wallpaper="ocean-refraction"] .wallpaper-layer {
+  background: radial-gradient(circle at 12% 80%, #8CE9F4 0%, transparent 50%),
+              radial-gradient(circle at 88% 20%, #99D3FF 0%, transparent 48%),
+              linear-gradient(135deg, #CCE9FF 0%, #E0FAFC 56%, #D4F4A6 100%);
+}
+
+html[data-theme="liquid-glass"][data-wallpaper="midnight-crystal"] {
+  --bg-canvas: #090E1E;
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --option-bg: #131D38;
+  --option-fg: #F8FAFC;
+  --pill-success-fg: #34D399;
+  --pill-warning-fg: #FBBF24;
+  --pill-danger-fg: #F87171;
+
+  --glass-l1: rgba(18, 28, 54, calc(var(--glass-opacity) * 0.72));
+  --glass-l2: rgba(22, 34, 66, calc(var(--glass-opacity) * 0.86));
+  --glass-l3: rgba(24, 38, 74, 0.94);
+  --surface-subtle: rgba(255, 255, 255, 0.09);
+  --input-bg: rgba(12, 20, 40, 0.64);
+  --border-subtle: rgba(255, 255, 255, 0.16);
+  --border-highlight: rgba(255, 255, 255, 0.34);
+  --specular-color: rgba(148, 197, 255, 0.16);
+  --shadow-glass: 0 18px 42px rgba(2, 6, 23, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --shadow-float: 0 26px 56px rgba(2, 6, 23, 0.62), inset 0 1.5px 0 rgba(255, 255, 255, 0.32);
+}
+
+html[data-theme="liquid-glass"][data-wallpaper="midnight-crystal"] .wallpaper-layer {
+  background: radial-gradient(circle at 18% 22%, rgba(56, 189, 248, 0.36) 0%, transparent 46%),
+              radial-gradient(circle at 82% 76%, rgba(168, 85, 247, 0.36) 0%, transparent 48%),
+              linear-gradient(135deg, #070B18 0%, #101A36 55%, #0B1829 100%);
+}
+
+html[data-theme="liquid-glass"] .ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.44;
+  will-change: transform;
+}
+
+html[data-theme="liquid-glass"] .orb-1 {
+  width: 420px; height: 420px; background: #60A5FA; top: -90px; left: -70px;
+  animation: floatOrbA 16s ease-in-out infinite alternate;
+}
+html[data-theme="liquid-glass"] .orb-2 {
+  width: 380px; height: 380px; background: #C084FC; right: -70px; top: 20%;
+  animation: floatOrbB 20s ease-in-out infinite alternate;
+}
+html[data-theme="liquid-glass"] .orb-3 {
+  width: 350px; height: 350px; background: #34D399; bottom: -100px; left: 36%;
+  animation: floatOrbA 18s ease-in-out infinite alternate-reverse;
+}
+
+/* Multi-layer Liquid Glass Surfaces */
+html[data-theme="liquid-glass"] .sidebar,
+html[data-theme="liquid-glass"] .topbar,
+html[data-theme="liquid-glass"] .card,
+html[data-theme="liquid-glass"] .auth-card,
+html[data-theme="liquid-glass"] .modal-panel,
+html[data-theme="liquid-glass"] .question-overlay-card,
+html[data-theme="liquid-glass"] .toast-item,
+html[data-theme="liquid-glass"] .mobile-tabbar {
+  background: var(--glass-l2);
+  backdrop-filter: blur(var(--glass-blur)) saturate(185%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(185%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-glass);
+}
+
+/* Video stage GPU isolation: never re-blur video frames to avoid FPS drops */
+html[data-theme="liquid-glass"] .video-stage,
+html[data-theme="liquid-glass"] .video-stage video {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: translateZ(0);
+  contain: content;
+}
+
+html[data-theme="liquid-glass"] .sidebar,
+html[data-theme="liquid-glass"] .topbar {
+  border-radius: var(--radius-xl);
+  background: var(--glass-l1);
+}
+
+html[data-theme="liquid-glass"] .modal-panel,
+html[data-theme="liquid-glass"] .question-overlay-card,
+html[data-theme="liquid-glass"] .toast-item {
+  background: var(--glass-l3);
+  box-shadow: var(--shadow-float);
+}
+
+/* Specular Refraction Edge + Pointer Light Reflection */
+html[data-theme="liquid-glass"] .card::before,
+html[data-theme="liquid-glass"] .auth-card::before,
+html[data-theme="liquid-glass"] .sidebar::before,
+html[data-theme="liquid-glass"] .topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(145deg, var(--border-highlight), rgba(255, 255, 255, 0.08) 46%, rgba(255, 255, 255, 0.44));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+html[data-theme="liquid-glass"] .card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), var(--specular-color), transparent 65%);
+  opacity: 0;
+  transition: opacity 280ms ease;
+  pointer-events: none;
+}
+
+html[data-theme="liquid-glass"] .card:hover::after {
+  opacity: 1;
+}
+
+html[data-theme="liquid-glass"] .card:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: var(--shadow-float);
+}
+
+html[data-theme="liquid-glass"] .nav-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+html[data-theme="liquid-glass"] .btn-primary {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #6366F1));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 34%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}

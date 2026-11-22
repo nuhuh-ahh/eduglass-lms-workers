@@ -1,0 +1,17 @@
+{
+  "id": "appearance",
+  "name": "Appearance Module",
+  "version": "1.0.0",
+  "description": "Hệ thống giao diện kép Liquid Glass (iOS 27) & Classic Education đồng bộ tài khoản.",
+  "core": true,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication"
+  ],
+  "permissions": [
+    "appearance.customize"
+  ],
+  "apiPrefix": "/api/v1/preferences",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

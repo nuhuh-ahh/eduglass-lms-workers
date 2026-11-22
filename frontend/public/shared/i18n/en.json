@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "EduGlass LMS",
+    "tagline": "Next-Generation Interactive Video Learning Platform"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "classrooms": "Classrooms",
+    "studio": "Video Studio",
+    "player": "Video Player",
+    "quizzes": "Quizzes & Assignments",
+    "analytics": "Analytics & Reports",
+    "calendar": "Calendar",
+    "notifications": "Notifications",
+    "settings": "Appearance & Settings",
+    "modules": "Module Manager",
+    "admin": "System Admin",
+    "logout": "Sign Out"
+  },
+  "auth": {
+    "login": "Sign In",
+    "register": "Create Account",
+    "forgot": "Forgot Password",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "role": "Role",
+    "rememberMe": "Remember me (30 days)",
+    "teacher": "Teacher",
+    "student": "Student"
+  },
+  "theme": {
+    "liquidGlass": "Liquid Glass (iOS 27)",
+    "classicEducation": "Classic Education",
+    "appearance": "Appearance & Experience",
+    "wallpaper": "Liquid Glass Wallpaper",
+    "accentColor": "Accent Color",
+    "glassOpacity": "Glass Opacity",
+    "glassBlur": "Backdrop Blur",
+    "animationLevel": "Animation Level",
+    "sound": "Interactive Sound"
+  },
+  "common": {
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "create": "Create",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search...",
+    "loading": "Loading...",
+    "submit": "Submit",
+    "saveDraft": "Save Draft"
+  }
+}

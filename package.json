@@ -1,0 +1,23 @@
+{
+  "name": "eduglass-lms-cloudflare-workers",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "EduGlass LMS — 24/7 Serverless Edition for Cloudflare Workers + D1 + R2",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply eduglass-lms-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply eduglass-lms-db --remote",
+    "db:seed:local": "wrangler d1 execute eduglass-lms-db --local --file=./database/seed.sql",
+    "db:seed:remote": "wrangler d1 execute eduglass-lms-db --remote --file=./database/seed.sql",
+    "test": "node --test tests/worker.test.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^3.100.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

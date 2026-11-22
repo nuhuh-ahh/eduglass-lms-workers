@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "EduGlass LMS",
+    "tagline": "Nền tảng học tập video tương tác thế hệ mới"
+  },
+  "nav": {
+    "dashboard": "Tổng quan",
+    "classrooms": "Lớp học",
+    "studio": "Video Studio",
+    "player": "Học Video",
+    "quizzes": "Kiểm tra & Bài tập",
+    "analytics": "Thống kê & Báo cáo",
+    "calendar": "Lịch học",
+    "notifications": "Thông báo",
+    "settings": "Giao diện & Cài đặt",
+    "modules": "Quản lý Module",
+    "admin": "Quản trị Hệ thống",
+    "logout": "Đăng xuất"
+  },
+  "auth": {
+    "login": "Đăng nhập",
+    "register": "Đăng ký tài khoản",
+    "forgot": "Quên mật khẩu",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "fullName": "Họ và tên",
+    "role": "Vai trò",
+    "rememberMe": "Ghi nhớ đăng nhập (30 ngày)",
+    "teacher": "Giáo viên",
+    "student": "Học sinh"
+  },
+  "theme": {
+    "liquidGlass": "Liquid Glass (iOS 27)",
+    "classicEducation": "Classic Education",
+    "appearance": "Giao diện & Trải nghiệm",
+    "wallpaper": "Hình nền Liquid Glass",
+    "accentColor": "Màu chủ đạo",
+    "glassOpacity": "Độ trong suốt kính",
+    "glassBlur": "Độ mờ nền (Blur)",
+    "animationLevel": "Mức độ chuyển động",
+    "sound": "Âm thanh tương tác"
+  },
+  "common": {
+    "save": "Lưu thay đổi",
+    "cancel": "Hủy",
+    "create": "Tạo mới",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "search": "Tìm kiếm...",
+    "loading": "Đang tải dữ liệu...",
+    "submit": "Nộp bài",
+    "saveDraft": "Lưu nháp"
+  }
+}

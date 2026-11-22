@@ -1,0 +1,19 @@
+{
+  "id": "quiz",
+  "name": "Quiz Module",
+  "version": "1.0.0",
+  "description": "Ngân hàng câu hỏi, đề kiểm tra trực tuyến, chấm điểm tự động và tự luận.",
+  "core": false,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication",
+    "classroom"
+  ],
+  "permissions": [
+    "quiz.manage",
+    "quiz.attempt"
+  ],
+  "apiPrefix": "/api/v1/quizzes",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

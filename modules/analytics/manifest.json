@@ -1,0 +1,19 @@
+{
+  "id": "analytics",
+  "name": "Analytics Module",
+  "version": "1.0.0",
+  "description": "Thống kê lớp học, từng học sinh, biểu đồ trực quan và công thức Accuracy chuẩn.",
+  "core": false,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication",
+    "classroom",
+    "video_learning"
+  ],
+  "permissions": [
+    "analytics.view"
+  ],
+  "apiPrefix": "/api/v1/analytics",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

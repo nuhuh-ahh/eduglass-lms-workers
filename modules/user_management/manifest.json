@@ -1,0 +1,18 @@
+{
+  "id": "user_management",
+  "name": "User Management Module",
+  "version": "1.0.0",
+  "description": "Quản lý hồ sơ, tài khoản học sinh, giáo viên, quản trị trường.",
+  "core": true,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication"
+  ],
+  "permissions": [
+    "user.read",
+    "user.manage"
+  ],
+  "apiPrefix": "/api/v1/admin/users",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

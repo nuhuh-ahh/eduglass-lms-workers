@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Cloudflare Wrangler local state & dev vars
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build & Cache
+dist/
+build/
+.cache/
+
+# SQLite & local DB
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

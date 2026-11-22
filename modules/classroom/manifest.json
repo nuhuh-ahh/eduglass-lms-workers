@@ -1,0 +1,19 @@
+{
+  "id": "classroom",
+  "name": "Classroom Module",
+  "version": "1.0.0",
+  "description": "Tạo lớp học, mã tham gia, liên kết mời, quản lý thành viên và thông báo lớp.",
+  "core": false,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication",
+    "user_management"
+  ],
+  "permissions": [
+    "classroom.manage",
+    "classroom.join"
+  ],
+  "apiPrefix": "/api/v1/classrooms",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

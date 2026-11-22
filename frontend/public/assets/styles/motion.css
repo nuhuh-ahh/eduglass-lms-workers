@@ -1,0 +1,124 @@
+/* ==========================================================================
+   EduGlass LMS — Smooth 60 FPS GPU-Accelerated Motion System (v2)
+   Staggered reveals, spring entrances, fluid theme transition & a11y.
+   ========================================================================== */
+
+@keyframes floatOrbA {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(34px, 24px, 0) scale(1.07); }
+  100% { transform: translate3d(-18px, 38px, 0) scale(0.96); }
+}
+
+@keyframes floatOrbB {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-32px, -22px, 0) scale(1.09); }
+  100% { transform: translate3d(20px, 28px, 0) scale(0.95); }
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.992); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes cardStaggerIn {
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.975); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.92) translate3d(0, 18px, 0); }
+  to   { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
+}
+
+@keyframes backdropFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes toastBounce {
+  0%   { opacity: 0; transform: translate3d(32px, 0, 0) scale(0.94); }
+  70%  { opacity: 1; transform: translate3d(-4px, 0, 0) scale(1.01); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.page-enter {
+  animation: pageEnter 380ms var(--ease-spring) both;
+}
+
+.grid-kpi > .card,
+.grid-2 > .card,
+.grid-3 > .card {
+  animation: cardStaggerIn 420ms var(--ease-spring) both;
+}
+
+.grid-kpi > .card:nth-child(1), .grid-3 > .card:nth-child(1) { animation-delay: 25ms; }
+.grid-kpi > .card:nth-child(2), .grid-3 > .card:nth-child(2) { animation-delay: 60ms; }
+.grid-kpi > .card:nth-child(3), .grid-3 > .card:nth-child(3) { animation-delay: 95ms; }
+.grid-kpi > .card:nth-child(4), .grid-3 > .card:nth-child(4) { animation-delay: 130ms; }
+.grid-kpi > .card:nth-child(5), .grid-3 > .card:nth-child(5) { animation-delay: 165ms; }
+.grid-kpi > .card:nth-child(6), .grid-3 > .card:nth-child(6) { animation-delay: 200ms; }
+
+.modal-backdrop {
+  animation: backdropFade 200ms ease both;
+}
+
+.modal-panel,
+.question-overlay-card {
+  animation: modalPop 320ms var(--ease-spring) both;
+}
+
+.toast-item {
+  animation: toastBounce 340ms var(--ease-spring) both;
+}
+
+.card {
+  transition: transform 240ms var(--ease-spring), box-shadow 240ms ease, border-color 240ms ease;
+}
+
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--surface-subtle) 25%, rgba(255,255,255,0.45) 50%, var(--surface-subtle) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s infinite linear;
+  min-height: 18px;
+}
+
+.theme-transition-veil {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-veil);
+  pointer-events: none;
+  opacity: 0;
+  backdrop-filter: blur(12px);
+  background: radial-gradient(circle at center, rgba(255,255,255,0.45), color-mix(in srgb, var(--accent) 16%, transparent));
+  transition: opacity 260ms var(--ease-out);
+}
+
+.theme-transition-veil.active {
+  opacity: 1;
+}
+
+html[data-motion="reduced"] .ambient-orb,
+html[data-motion="none"] .ambient-orb {
+  animation: none !important;
+}
+
+html[data-motion="none"] *,
+html[data-motion="none"] *::before,
+html[data-motion="none"] *::after {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

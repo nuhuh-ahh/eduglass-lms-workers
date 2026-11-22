@@ -1,0 +1,17 @@
+{
+  "id": "authentication",
+  "name": "Authentication Module",
+  "version": "1.0.0",
+  "description": "Xác thực người dùng, quản lý phiên đăng nhập, JWT HS256, scrypt & RBAC.",
+  "core": true,
+  "enabledByDefault": true,
+  "dependencies": [],
+  "permissions": [
+    "auth.login",
+    "auth.register",
+    "auth.sessions"
+  ],
+  "apiPrefix": "/api/v1/auth",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "assignment",
+  "name": "Assignment Module",
+  "version": "1.0.0",
+  "description": "Giao bài tập, nộp bài trực tuyến, lưu bản nháp và chấm điểm nhận xét.",
+  "core": false,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication",
+    "classroom"
+  ],
+  "permissions": [
+    "assignment.manage",
+    "assignment.submit"
+  ],
+  "apiPrefix": "/api/v1/assignments",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "calendar",
+  "name": "Calendar Module",
+  "version": "1.0.0",
+  "description": "Lịch học tập tổng hợp chế độ Tháng, Tuần, Ngày và Danh sách sự kiện.",
+  "core": false,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication",
+    "classroom"
+  ],
+  "permissions": [
+    "calendar.view",
+    "calendar.manage"
+  ],
+  "apiPrefix": "/api/v1/calendar",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

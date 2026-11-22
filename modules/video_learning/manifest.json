@@ -1,0 +1,19 @@
+{
+  "id": "video_learning",
+  "name": "Video Learning Module",
+  "version": "1.0.0",
+  "description": "Video Learning Studio, thư viện video, câu hỏi trên timeline và Anti-Skip Engine.",
+  "core": false,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication",
+    "classroom"
+  ],
+  "permissions": [
+    "lesson.manage",
+    "lesson.watch"
+  ],
+  "apiPrefix": "/api/v1/lessons",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

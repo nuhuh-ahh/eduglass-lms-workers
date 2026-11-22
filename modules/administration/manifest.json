@@ -1,0 +1,18 @@
+{
+  "id": "administration",
+  "name": "Administration Module",
+  "version": "1.0.0",
+  "description": "Bảng điều khiển Super Admin, trường học, audit logs, sức khỏe DB & Storage.",
+  "core": true,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication",
+    "user_management"
+  ],
+  "permissions": [
+    "admin.full"
+  ],
+  "apiPrefix": "/api/v1/admin",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

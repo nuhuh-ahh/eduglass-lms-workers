@@ -1,0 +1,17 @@
+{
+  "id": "report_export",
+  "name": "Report Export Module",
+  "version": "1.0.0",
+  "description": "Xuất báo cáo học tập thực tế từ cơ sở dữ liệu ra CSV, Excel XLSX và PDF.",
+  "core": false,
+  "enabledByDefault": true,
+  "dependencies": [
+    "analytics"
+  ],
+  "permissions": [
+    "report.export"
+  ],
+  "apiPrefix": "/api/v1/reports",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

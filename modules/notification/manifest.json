@@ -1,0 +1,17 @@
+{
+  "id": "notification",
+  "name": "Notification Module",
+  "version": "1.0.0",
+  "description": "Thông báo thời gian thực cho bài giảng, bài tập, hạn nộp và kết quả kiểm tra.",
+  "core": false,
+  "enabledByDefault": true,
+  "dependencies": [
+    "authentication"
+  ],
+  "permissions": [
+    "notification.read"
+  ],
+  "apiPrefix": "/api/v1/notifications",
+  "sandboxed": true,
+  "author": "EduGlass Core Team"
+}

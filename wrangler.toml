@@ -1,0 +1,28 @@
+name = "eduglass-lms"
+main = "worker/src/index.js"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[assets]
+directory = "./frontend/public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eduglass-lms-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "database/migrations"
+
+[[r2_buckets]]
+binding = "VIDEO_BUCKET"
+bucket_name = "eduglass-lms-videos"
+
+[vars]
+EDUGLASS_APP_NAME = "EduGlass LMS"
+EDUGLASS_ENV = "production"
+EDUGLASS_JWT_EXPIRE_HOURS = "24"
+EDUGLASS_JWT_REMEMBER_DAYS = "30"
+EDUGLASS_MAX_VIDEO_MB = "2048"
+EDUGLASS_ANTI_SKIP_TOLERANCE = "2.5"
+EDUGLASS_MAX_HEARTBEAT_DELTA = "15.0"
