@@ -63,7 +63,7 @@ function getNavItems(role) {
     { id: 'classrooms', label: t('nav.classrooms', 'Lớp học'), icon: '▦' },
     ...(isStaff ? [{ id: 'subaccounts', label: 'Tài khoản Học sinh', icon: '👥' }] : []),
     ...(isStaff ? [{ id: 'studio', label: t('nav.studio', 'Video Studio'), icon: '▶' }] : []),
-    { id: 'gdrive', label: 'Google Drive (5TB)', icon: '📁' },
+    { id: 'gdrive', label: 'Google Drive', icon: '📁' },
     { id: 'player', label: t('nav.player', 'Học Video'), icon: '◉' },
     { id: 'quizzes', label: t('nav.quizzes', 'Kiểm tra & Bài tập'), icon: '✎' },
     ...(isStaff ? [{ id: 'analytics', label: t('nav.analytics', 'Thống kê & Báo cáo'), icon: '◔' }] : []),

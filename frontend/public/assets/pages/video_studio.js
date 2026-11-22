@@ -98,7 +98,7 @@ export async function renderVideoStudioPage(container, navigate) {
                   <div style="font-size:2.8rem;margin-bottom:8px;">🎬</div>
                   <h3 style="margin:0 0 6px;">Bài giảng này chưa có video</h3>
                   <p class="muted" style="margin:0 auto 16px;max-width:460px;font-size:0.84rem;line-height:1.5;">
-                    Đây là bài mẫu đã có sẵn timeline câu hỏi tương tác. Bạn có thể gắn link video từ Google Drive 5TB, YouTube hoặc chọn video đã tải lên từ thư viện.
+                    Đây là bài mẫu đã có sẵn timeline câu hỏi tương tác. Bạn có thể gắn link video từ Google Drive, YouTube hoặc chọn video đã tải lên từ thư viện.
                   </p>
                   <div class="flex-row" style="justify-content:center;gap:10px;flex-wrap:wrap;">
                     <button class="btn btn-primary btn-sm" id="btn-attach-lesson-link">🔗 Gắn link Video cho bài này</button>
@@ -288,7 +288,7 @@ export async function renderVideoStudioPage(container, navigate) {
           <div class="card" style="margin-bottom:14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);padding:12px 14px;">
             <div style="font-weight:700;font-size:0.86rem;color:var(--success);margin-bottom:6px;">💡 Hướng dẫn 3 nguồn video khuyên dùng:</div>
             <div style="display:flex;flex-direction:column;gap:6px;font-size:0.78rem;line-height:1.45;color:var(--text-muted);">
-              <div>• <strong>📁 Google Drive (5TB):</strong> Chuột phải vào video $\rightarrow$ <em>Chia sẻ</em> $\rightarrow$ Đổi quyền thành <em>"Bất kỳ ai có đường liên kết (Xem)"</em> $\rightarrow$ Copy link dán vào đây. <em>(Hệ thống tự động kích hoạt bộ điều tiết an toàn 15–20 người xem cùng lúc để bảo vệ quota Drive).</em></div>
+              <div>• <strong>📁 Google Drive:</strong> Chuột phải vào video $\rightarrow$ <em>Chia sẻ</em> $\rightarrow$ Đổi quyền thành <em>"Bất kỳ ai có đường liên kết (Xem)"</em> $\rightarrow$ Copy link dán vào đây. <em>(Hệ thống tự động kích hoạt bộ điều tiết an toàn 15–20 người xem cùng lúc để bảo vệ quota Drive).</em></div>
               <div>• <strong>🔴 YouTube:</strong> Upload lên kênh cá nhân $\rightarrow$ Chọn chế độ <em>"Không công khai (Unlisted)"</em> $\rightarrow$ Copy link YouTube dán vào đây. <em>(Xem mượt mà qua YouTube Player chính chủ).</em></div>
               <div>• <strong>🎬 Direct MP4 (GitHub Releases / Catbox):</strong> Copy link trực tiếp <code>.mp4</code> dán vào đây. <em>(Hỗ trợ 100% Anti-Skip khóa tua và dừng hình khi có câu hỏi).</em></div>
             </div>

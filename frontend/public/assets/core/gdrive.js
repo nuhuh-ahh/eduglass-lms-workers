@@ -1,7 +1,8 @@
 /**
- * EduGlass LMS — Google Drive Integration Engine (5TB Edition)
- * Handles Google OAuth 2.0, Drive API v3 (Quota & File/Folder Explorer),
- * and 1-click video lesson binding.
+ * EduGlass LMS — Google Drive Integration Engine
+ * Connects directly to Google Drive API v3 using Google Identity Services (GIS)
+ * Supports all account tiers: 15 GB Free, 100 GB, 2 TB, 5 TB, or Unlimited Workspace.
+ * ZERO mock data — displays only verified account storage and user files.
  */
 
 const STORAGE_KEYS = {
@@ -13,20 +14,12 @@ const STORAGE_KEYS = {
   CONNECTED: 'eduglass_gdrive_connected',
 };
 
-// Default Demo / 5TB Preset
-const DEFAULT_5TB_QUOTA = {
-  totalBytes: 5 * 1024 * 1024 * 1024 * 1024, // 5 TB
-  usedBytes: 1.18 * 1024 * 1024 * 1024 * 1024, // 1.18 TB
-  planName: 'Google One / Workspace (5 TB)',
-  accountEmail: 'akumiyuukii@gmail.com',
-  displayName: 'Google Drive 5TB',
-};
-
 export function formatBytes(bytes) {
-  if (!bytes || bytes <= 0) return '0 B';
+  if (bytes === null || bytes === undefined) return 'Không giới hạn';
+  if (bytes <= 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(i >= 4 ? 2 : 1)} ${units[i]}`;
+  return `${(bytes / Math.pow(1024, i)).toFixed(i >= 3 ? 2 : 1)} ${units[i]}`;
 }
 
 export function getGDriveState() {
@@ -34,49 +27,66 @@ export function getGDriveState() {
   const clientId = localStorage.getItem(STORAGE_KEYS.CLIENT_ID) || '';
   const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || '';
   const expiresAt = Number(localStorage.getItem(STORAGE_KEYS.EXPIRES_AT) || 0);
+  const isTokenValid = Boolean(token && (expiresAt === 0 || expiresAt > Date.now()));
+
+  let quota = null;
   const rawQuota = localStorage.getItem(STORAGE_KEYS.QUOTA);
-  const rawUser = localStorage.getItem(STORAGE_KEYS.USER_INFO);
-
-  let quota = DEFAULT_5TB_QUOTA;
   if (rawQuota) {
-    try { quota = JSON.parse(rawQuota); } catch { /* ignore */ }
+    try {
+      const q = JSON.parse(rawQuota);
+      const isUnlimited = q.totalBytes === null || q.totalBytes === undefined || q.totalBytes <= 0;
+      const pct = isUnlimited ? 0 : Math.min(100, Math.round((q.usedBytes / q.totalBytes) * 100));
+      quota = {
+        totalBytes: q.totalBytes,
+        usedBytes: q.usedBytes,
+        pct,
+        usedStr: formatBytes(q.usedBytes),
+        totalStr: formatBytes(q.totalBytes),
+        freeStr: isUnlimited ? 'Không giới hạn' : formatBytes(Math.max(0, q.totalBytes - q.usedBytes)),
+        isUnlimited,
+      };
+    } catch {
+      quota = null;
+    }
   }
 
-  let user = { email: quota.accountEmail, name: quota.displayName };
+  let user = null;
+  const rawUser = localStorage.getItem(STORAGE_KEYS.USER_INFO);
   if (rawUser) {
-    try { user = JSON.parse(rawUser); } catch { /* ignore */ }
+    try {
+      user = JSON.parse(rawUser);
+    } catch {
+      user = null;
+    }
   }
-
-  const pct = Math.min(100, Math.round((quota.usedBytes / quota.totalBytes) * 100));
 
   return {
-    isConnected,
+    isConnected: Boolean(isConnected && (user || quota || token)),
     clientId,
     token,
-    isTokenValid: Boolean(token && expiresAt > Date.now()),
-    quota: {
-      ...quota,
-      pct,
-      usedStr: formatBytes(quota.usedBytes),
-      totalStr: formatBytes(quota.totalBytes),
-      freeStr: formatBytes(quota.totalBytes - quota.usedBytes),
-    },
+    isTokenValid,
+    quota,
     user,
   };
 }
 
-export function setGDriveConnected(connected, quotaData = null, userData = null) {
-  localStorage.setItem(STORAGE_KEYS.CONNECTED, connected ? 'true' : 'false');
+export function setGDriveClientId(clientId) {
+  localStorage.setItem(STORAGE_KEYS.CLIENT_ID, (clientId || '').trim());
+}
+
+export function saveGDriveSession(accessToken, expiresInSeconds, quotaData, userData) {
+  localStorage.setItem(STORAGE_KEYS.CONNECTED, 'true');
+  if (accessToken) {
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    const ttl = Number(expiresInSeconds) || 3600;
+    localStorage.setItem(STORAGE_KEYS.EXPIRES_AT, String(Date.now() + ttl * 1000));
+  }
   if (quotaData) {
     localStorage.setItem(STORAGE_KEYS.QUOTA, JSON.stringify(quotaData));
   }
   if (userData) {
     localStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(userData));
   }
-}
-
-export function setGDriveClientId(clientId) {
-  localStorage.setItem(STORAGE_KEYS.CLIENT_ID, clientId.trim());
 }
 
 export function disconnectGDrive() {
@@ -88,29 +98,59 @@ export function disconnectGDrive() {
 }
 
 /**
+ * Load Google Identity Services SDK dynamically
+ */
+export function loadGsiScript() {
+  if (window.google?.accounts?.oauth2) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => reject(new Error('Lỗi tải Google SDK')));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Không thể tải Google Identity Services SDK.'));
+    document.head.appendChild(script);
+  });
+}
+
+/**
  * Fetch real storage quota from Google Drive API v3
  */
 export async function fetchLiveQuota(accessToken) {
   const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=storageQuota,user', {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error('Không thể tải thông tin dung lượng từ Google Drive API.');
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error('Phiên đăng nhập Google đã hết hạn. Vui lòng kết nối lại tài khoản.');
+    }
+    throw new Error(`Google Drive API lỗi HTTP ${res.status}`);
+  }
   const data = await res.json();
   const q = data.storageQuota || {};
-  const total = Number(q.limit || DEFAULT_5TB_QUOTA.totalBytes);
-  const used = Number(q.usage || DEFAULT_5TB_QUOTA.usedBytes);
-  const user = data.user || {};
+  const total = q.limit ? Number(q.limit) : null;
+  const used = Number(q.usage || 0);
+  const u = data.user || {};
 
   const quotaData = {
     totalBytes: total,
     usedBytes: used,
-    planName: total >= 4.5 * 1024 * 1024 * 1024 * 1024 ? 'Google One / Workspace (5 TB)' : 'Google Drive Storage',
-    accountEmail: user.emailAddress || 'akumiyuukii@gmail.com',
-    displayName: user.displayName || 'Google Drive User',
   };
 
-  setGDriveConnected(true, quotaData, { email: user.emailAddress, name: user.displayName, photo: user.photoLink });
-  return quotaData;
+  const userData = {
+    email: u.emailAddress || '',
+    name: u.displayName || 'Google User',
+    photo: u.photoLink || '',
+  };
+
+  saveGDriveSession(accessToken, 3600, quotaData, userData);
+  return { quota: quotaData, user: userData };
 }
 
 /**
@@ -119,68 +159,15 @@ export async function fetchLiveQuota(accessToken) {
 export async function fetchLiveFiles(accessToken, folderId = 'root') {
   const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
   const fields = encodeURIComponent('files(id,name,mimeType,size,thumbnailLink,webViewLink,videoMediaMetadata,iconLink)');
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=folder,name`, {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&orderBy=folder,name&pageSize=100`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error('Không thể tải danh sách tệp từ Google Drive API.');
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error('Phiên đăng nhập Google đã hết hạn. Vui lòng kết nối lại tài khoản.');
+    }
+    throw new Error(`Không thể lấy danh sách file (HTTP ${res.status}).`);
+  }
   const data = await res.json();
   return data.files || [];
-}
-
-/**
- * Default sample files & folders for 5TB Drive (used for demo or when testing)
- */
-export function getSampleDriveItems(folderId = 'root') {
-  if (folderId === 'folder_lop10') {
-    return [
-      {
-        id: 'vid_gdrive_1',
-        name: 'Bai_01_Dai_So_Menh_De_Tap_Hop.mp4',
-        mimeType: 'video/mp4',
-        size: 485 * 1024 * 1024,
-        duration: 840,
-        webViewLink: 'https://drive.google.com/file/d/1A2B3C_SAMPLE_ID_1/view?usp=sharing',
-      },
-      {
-        id: 'vid_gdrive_2',
-        name: 'Bai_02_Bat_Phuong_Trinh_Bac_Nhat.mp4',
-        mimeType: 'video/mp4',
-        size: 620 * 1024 * 1024,
-        duration: 1120,
-        webViewLink: 'https://drive.google.com/file/d/1A2B3C_SAMPLE_ID_2/view?usp=sharing',
-      },
-    ];
-  }
-
-  return [
-    {
-      id: 'folder_lop10',
-      name: '📁 Kho Bài Giảng Lớp 10 (Toán & Tin)',
-      mimeType: 'application/vnd.google-apps.folder',
-      size: null,
-      itemCount: 8,
-    },
-    {
-      id: 'folder_lop11',
-      name: '📁 Kho Bài Giảng Lớp 11 (Vật Lý & Hóa)',
-      mimeType: 'application/vnd.google-apps.folder',
-      size: null,
-      itemCount: 14,
-    },
-    {
-      id: 'folder_tongon',
-      name: '📁 Video Tổng Ôn Thi Đại Học (4K 60FPS)',
-      mimeType: 'application/vnd.google-apps.folder',
-      size: null,
-      itemCount: 22,
-    },
-    {
-      id: 'vid_master_demo',
-      name: 'EduGlass_Bai_Giang_Mau_5TB_Drive.mp4',
-      mimeType: 'video/mp4',
-      size: 920 * 1024 * 1024,
-      duration: 1450,
-      webViewLink: 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view?usp=sharing',
-    },
-  ];
 }

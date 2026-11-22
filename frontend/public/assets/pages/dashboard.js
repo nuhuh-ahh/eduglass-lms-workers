@@ -7,6 +7,33 @@ import { renderBarChart, renderDonutMetric } from '../components/charts.js';
 import { getGDriveState } from '../core/gdrive.js';
 
 function renderGDriveQuotaCard(gdrive) {
+  if (!gdrive.isConnected || !gdrive.quota) {
+    return `
+      <div class="card" style="border:1px solid rgba(10,132,255,0.2);background:linear-gradient(135deg, rgba(10,132,255,0.05), rgba(48,209,88,0.03));padding:16px 20px;">
+        <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.06);font-size:22px;">
+              📁
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:1.02rem;display:flex;align-items:center;gap:8px;">
+                Kho Lưu Trữ Google Drive
+                <span class="pill pill-warning" style="font-size:0.75rem;">● Chưa kết nối</span>
+              </div>
+              <div class="muted" style="font-size:0.82rem;margin-top:2px;">
+                Hỗ trợ tài khoản 15 GB miễn phí, Google One và Google Workspace.
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" data-gdrive-nav style="gap:6px;">
+            🔗 Liên kết tài khoản Google Drive
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  const q = gdrive.quota;
   return `
     <div class="card" style="border:1px solid rgba(10,132,255,0.25);background:linear-gradient(135deg, rgba(10,132,255,0.06), rgba(48,209,88,0.04));padding:16px 20px;">
       <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
@@ -16,13 +43,11 @@ function renderGDriveQuotaCard(gdrive) {
           </div>
           <div>
             <div style="font-weight:700;font-size:1.02rem;display:flex;align-items:center;gap:8px;">
-              Lưu Trữ Google Drive (Gói 5 TB)
-              <span class="pill ${gdrive.isConnected ? 'pill-success' : 'pill-info'}" style="font-size:0.75rem;">
-                ${gdrive.isConnected ? '● Đã kết nối' : '● Sẵn sàng (5 TB)'}
-              </span>
+              Kho Lưu Trữ Google Drive
+              <span class="pill pill-success" style="font-size:0.75rem;">● Đã kết nối</span>
             </div>
             <div class="muted" style="font-size:0.82rem;margin-top:2px;">
-              ${escapeHtml(gdrive.user.email)} • ${escapeHtml(gdrive.quota.planName)}
+              ${escapeHtml(gdrive.user?.email || '')} ${gdrive.user?.name ? `(${escapeHtml(gdrive.user.name)})` : ''}
             </div>
           </div>
         </div>
@@ -33,12 +58,14 @@ function renderGDriveQuotaCard(gdrive) {
 
       <div style="margin-top:14px;">
         <div class="flex-between" style="font-size:0.84rem;margin-bottom:6px;">
-          <span><strong>Tổng dung lượng đã dùng:</strong> ${gdrive.quota.usedStr} / ${gdrive.quota.totalStr} (${gdrive.quota.pct}%)</span>
-          <span class="muted">Còn trống: ${gdrive.quota.freeStr}</span>
+          <span><strong>Tổng dung lượng đã dùng:</strong> ${q.usedStr} / ${q.totalStr} ${q.isUnlimited ? '' : `(${q.pct}%)`}</span>
+          <span class="muted">Còn trống: ${q.freeStr}</span>
         </div>
-        <div class="progress-track" style="height:9px;background:rgba(255,255,255,0.35);border-radius:999px;overflow:hidden;">
-          <div class="progress-fill" style="width:${gdrive.quota.pct}%;height:100%;background:linear-gradient(90deg, #0A84FF, #30D158);border-radius:999px;transition:width 0.6s cubic-bezier(0.16,1,0.3,1);"></div>
-        </div>
+        ${!q.isUnlimited ? `
+          <div class="progress-track" style="height:9px;background:rgba(255,255,255,0.35);border-radius:999px;overflow:hidden;">
+            <div class="progress-fill" style="width:${q.pct}%;height:100%;background:linear-gradient(90deg, #0A84FF, #30D158);border-radius:999px;transition:width 0.6s cubic-bezier(0.16,1,0.3,1);"></div>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
