@@ -109,8 +109,8 @@ export async function renderVideoStudioPage(container, navigate) {
                 <div class="video-stage">
                   ${(() => {
                     const key = detail.lesson.storage_key || '';
-                    const yt = key.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
-                    const drive = key.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?\/\s]+)/i);
+                    const yt = key.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+                    const drive = key.match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([^"&?\/\s]+)/i);
                     if (yt) {
                       return `<iframe src="https://www.youtube.com/embed/${yt[1]}?rel=0"
                         style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"
@@ -288,26 +288,36 @@ export async function renderVideoStudioPage(container, navigate) {
           <div class="card" style="margin-bottom:14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);padding:12px 14px;">
             <div style="font-weight:700;font-size:0.88rem;color:var(--success);margin-bottom:6px;">✨ Cách dùng nhanh nhất & không cần cài đặt kỹ thuật:</div>
             <div style="display:flex;flex-direction:column;gap:6px;font-size:0.8rem;line-height:1.5;color:var(--text);">
-              <div>• <strong>📁 Google Drive:</strong> Bạn chỉ cần tải video lên Google Drive của bạn $\rightarrow$ Chuột phải chọn <em>"Chia sẻ" (Ai có đường liên kết đều xem được)</em> $\rightarrow$ <em>Sao chép liên kết</em> và dán vào ô bên dưới là xong! <em>(Không cần tài khoản Developer hay Google Cloud gì cả).</em></div>
-              <div>• <strong>🔴 YouTube:</strong> Upload lên kênh cá nhân $\rightarrow$ Chọn chế độ <em>"Không công khai (Unlisted)"</em> $\rightarrow$ Copy link YouTube dán vào đây. <em>(Xem mượt mà qua YouTube Player chính chủ).</em></div>
+              <div>• <strong>📁 Google Drive:</strong> Bạn chỉ cần tải video lên Google Drive của bạn → Chuột phải chọn <em>"Chia sẻ" (Ai có đường liên kết đều xem được)</em> → <em>Sao chép liên kết</em> và dán vào ô bên dưới là xong! <em>(Không cần tài khoản Developer hay Google Cloud gì cả).</em></div>
+              <div>• <strong>🔴 YouTube:</strong> Upload lên kênh cá nhân → Chọn chế độ <em>"Không công khai (Unlisted)"</em> → Copy link YouTube dán vào đây. <em>(Xem mượt mà qua YouTube Player chính chủ).</em></div>
               <div>• <strong>🎬 Direct MP4 (GitHub Releases / Catbox):</strong> Copy link trực tiếp <code>.mp4</code> dán vào đây. <em>(Hỗ trợ 100% Anti-Skip khóa tua và dừng hình khi có câu hỏi).</em></div>
             </div>
           </div>
           <div class="field">
             <label>Tiêu đề video</label>
-            <input class="input" id="lv-title" required placeholder="VD: Bài 1 - Giới thiệu khoá học" />
+            <input class="input" id="lv-title" placeholder="VD: Bài 1 - Giới thiệu khoá học (bỏ trống để tự lấy tên)" />
           </div>
           <div class="field">
             <label>Đường dẫn video trực tiếp (Google Drive / YouTube / Direct MP4)</label>
-            <input class="input" id="lv-url" type="url" required placeholder="Dán link Drive, YouTube hoặc link MP4..." />
+            <input class="input" id="lv-url" type="text" required placeholder="Dán link Drive, YouTube hoặc link MP4..." />
             <small class="muted" style="display:block;margin-top:4px;font-size:0.75rem;">
-              Hệ thống tự động nhận diện ID video từ Google Drive và YouTube để nhúng trình phát chuẩn tương ứng!
+              Hỗ trợ tự động: link chia sẻ Google Drive, mã nhúng &lt;iframe&gt;, link YouTube/Shorts, link trực tiếp MP4.
             </small>
           </div>
           <div class="field">
             <label>Thời lượng (giây — tự động tính khi dán link)</label>
             <input class="input" id="lv-dur" type="number" min="1" value="120" />
           </div>
+          ${selectedLessonId && detail ? `
+            <div class="field" style="margin-top:8px;padding:8px 12px;background:rgba(59,130,246,0.08);border-radius:8px;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                <input type="checkbox" id="lv-attach-now" checked />
+                <span style="font-size:0.84rem;color:var(--primary);font-weight:600;">
+                  ✨ Tự động gắn video này vào bài giảng đang mở: "${escapeHtml(detail.lesson.title)}"
+                </span>
+              </label>
+            </div>
+          ` : ''}
           <div id="lv-preview-host" style="margin-bottom:12px;"></div>
           <div class="flex-end">
             <button class="btn btn-primary" id="lv-submit" type="submit">Lưu video</button>
@@ -318,11 +328,23 @@ export async function renderVideoStudioPage(container, navigate) {
         const durInput = slot.querySelector('#lv-dur');
         const previewHost = slot.querySelector('#lv-preview-host');
         const submitBtn = slot.querySelector('#lv-submit');
+        const attachNowCheck = slot.querySelector('#lv-attach-now');
+
+        function cleanUrl(val) {
+          let u = (val || '').trim();
+          const iframeMatch = u.match(/src=["']([^"']+)["']/i);
+          if (iframeMatch) u = iframeMatch[1].trim();
+          u = u.replace(/^[<"']+|[>"']+$/g, '').trim();
+          if (!/^https?:\/\//i.test(u) && (u.includes('drive.google.com') || u.includes('youtu') || u.includes('.'))) {
+            u = 'https://' + u;
+          }
+          return u;
+        }
 
         function checkUrlInput() {
-          const url = urlInput.value.trim();
-          const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
-          const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?\/\s]+)/i);
+          const url = cleanUrl(urlInput.value);
+          const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+          const driveMatch = url.match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([^"&?\/\s]+)/i);
 
           if (ytMatch) {
             previewHost.innerHTML = `
@@ -372,19 +394,25 @@ export async function renderVideoStudioPage(container, navigate) {
 
         slot.querySelector('#link-vid-form').addEventListener('submit', async (ev) => {
           ev.preventDefault();
+          const finalUrl = cleanUrl(urlInput.value);
+          if (!finalUrl) {
+            showToast('Vui lòng nhập đường dẫn URL video hợp lệ.', 'warning');
+            return;
+          }
           submitBtn.disabled = true;
           submitBtn.textContent = 'Đang lưu...';
           try {
             await apiRequest('/api/v1/videos/link', {
               method: 'POST',
               body: {
-                title: slot.querySelector('#lv-title').value,
-                url: urlInput.value.trim(),
+                title: slot.querySelector('#lv-title').value.trim(),
+                url: finalUrl,
                 duration_seconds: Number(durInput.value || 120),
+                attach_to_lesson_id: (attachNowCheck && attachNowCheck.checked) ? selectedLessonId : null,
               },
             });
             close();
-            showToast('Đã thêm video từ URL thành công!', 'success');
+            showToast((attachNowCheck && attachNowCheck.checked) ? 'Đã thêm video và gắn vào bài giảng thành công!' : 'Đã thêm video từ URL thành công!', 'success');
             draw();
           } catch (err) {
             showToast(err.message, 'error');
@@ -396,23 +424,23 @@ export async function renderVideoStudioPage(container, navigate) {
     });
 
     document.getElementById('btn-upload-video')?.addEventListener('click', () => {
-      openModal('Tải video bài giảng lên (Tối đa 2GB — MP4 / WebM)', `
+      openModal('Tải video bài giảng lên (Tải lên phân đoạn — Chống lỗi 413)', `
         <form id="upload-vid-form">
           <div class="card" style="margin-bottom:14px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);padding:12px 14px;">
             <div style="font-weight:700;font-size:0.86rem;color:var(--primary);margin-bottom:4px;">💡 Hướng dẫn tải video:</div>
             <ul style="margin:0;padding-left:18px;font-size:0.78rem;line-height:1.5;color:var(--text-muted);">
-              <li>Hỗ trợ file video định dạng <strong>MP4</strong> hoặc <strong>WebM</strong> (dung lượng tối đa <strong>2GB</strong>).</li>
-              <li>Hệ thống tích hợp <strong>Audio Inspector</strong> quét tương thích AAC và bộ chuyển đổi FFmpeg Web tự động.</li>
-              <li>Kéo thả tệp trực tiếp vào khung nét đứt bên dưới để chọn nhanh.</li>
+              <li>Hệ thống tích hợp <strong>Tải lên phân đoạn tự động (Chunked Upload)</strong> giúp tải mượt mà không bao giờ bị lỗi 413 (Payload Too Large).</li>
+              <li>Hỗ trợ file video định dạng <strong>MP4</strong> hoặc <strong>WebM</strong>. Tích hợp <strong>Audio Inspector</strong> quét AAC tự động.</li>
+              <li><strong style="color:var(--success);">Khuyên dùng cho video dài:</strong> Bạn có thể tải lên Google Drive rồi dùng nút <strong>"Gắn link Video"</strong> để phát qua CDN Google không tốn dung lượng!</li>
             </ul>
           </div>
-          <div class="field"><label>Tiêu đề video</label><input class="input" id="uv-title" required /></div>
+          <div class="field"><label>Tiêu đề video</label><input class="input" id="uv-title" placeholder="VD: Bài 1 - Giới thiệu khoá học (bỏ trống tự lấy tên tệp)" /></div>
           <div class="field">
             <label>Tệp video</label>
             <div id="uv-dropzone" style="border:2px dashed var(--border);border-radius:12px;padding:26px 16px;text-align:center;cursor:pointer;transition:all 0.2s ease;background:rgba(255,255,255,0.02);">
               <div style="font-size:2.2rem;margin-bottom:6px;">📁</div>
               <div id="uv-dropzone-title" style="font-weight:600;font-size:0.92rem;">Kéo thả tệp video vào đây</div>
-              <div class="muted" style="font-size:0.75rem;margin-top:4px;">hoặc bấm vào để chọn từ máy tính (.mp4, .webm — tối đa 2GB)</div>
+              <div class="muted" style="font-size:0.75rem;margin-top:4px;">hoặc bấm vào để chọn từ máy tính (.mp4, .webm)</div>
             </div>
             <input class="input" id="uv-file" type="file" accept="video/mp4,video/webm" style="display:none;" required />
           </div>
@@ -421,6 +449,16 @@ export async function renderVideoStudioPage(container, navigate) {
             <label>Thời lượng (giây — tự động tính khi chọn video)</label>
             <input class="input" id="uv-dur" type="number" value="60" min="1" />
           </div>
+          ${selectedLessonId && detail ? `
+            <div class="field" style="margin-top:8px;padding:8px 12px;background:rgba(59,130,246,0.08);border-radius:8px;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                <input type="checkbox" id="uv-attach-now" checked />
+                <span style="font-size:0.84rem;color:var(--primary);font-weight:600;">
+                  ✨ Tự động gắn video này vào bài giảng đang mở: "${escapeHtml(detail.lesson.title)}"
+                </span>
+              </label>
+            </div>
+          ` : ''}
           <div class="progress-track" style="margin-bottom:12px;"><div class="progress-fill" id="uv-prog" style="width:0%;"></div></div>
           <div class="muted" id="uv-status-text" style="font-size:0.8rem;margin-bottom:12px;display:none;"></div>
           <button class="btn btn-primary" type="submit" id="btn-submit-upload">Bắt đầu tải lên</button>
@@ -433,6 +471,7 @@ export async function renderVideoStudioPage(container, navigate) {
         const audioStatusHost = slot.querySelector('#uv-audio-status');
         const statusText = slot.querySelector('#uv-status-text');
         const submitBtn = slot.querySelector('#btn-submit-upload');
+        const attachNowCheck = slot.querySelector('#uv-attach-now');
 
         dropzone.addEventListener('click', () => fileInput.click());
         dropzone.addEventListener('dragover', (e) => {
@@ -546,20 +585,74 @@ export async function renderVideoStudioPage(container, navigate) {
           submitBtn.disabled = true;
           submitBtn.textContent = 'Đang tải lên...';
           statusText.style.display = 'block';
-          statusText.textContent = `Đang tải lên (${(fileToUpload.size / (1024 * 1024)).toFixed(1)} MB)...`;
 
-          const fd = new FormData();
-          fd.append('file', fileToUpload);
-          fd.append('title', slot.querySelector('#uv-title').value);
-          fd.append('duration_seconds', slot.querySelector('#uv-dur').value);
+          const title = slot.querySelector('#uv-title').value.trim() || fileToUpload.name.replace(/\.[^.]+$/, '');
+          const duration = Number(slot.querySelector('#uv-dur').value || 120);
+          const CHUNK_SIZE = 512 * 1024;
+          const totalChunks = Math.ceil(fileToUpload.size / CHUNK_SIZE);
+          const attachLessonId = (attachNowCheck && attachNowCheck.checked) ? selectedLessonId : null;
 
           try {
-            await uploadWithProgress('/api/v1/videos/upload', fd, (pct) => {
-              slot.querySelector('#uv-prog').style.width = `${pct}%`;
-              statusText.textContent = `Đang tải lên: ${pct}%...`;
+            // Bước 1: Khởi tạo phiên tải lên phân đoạn (Chunked Upload Session)
+            statusText.textContent = `Đang khởi tạo tải lên (${(fileToUpload.size / (1024 * 1024)).toFixed(1)} MB)...`;
+            const initRes = await apiRequest('/api/v1/videos/upload/init', {
+              method: 'POST',
+              body: {
+                filename: fileToUpload.name,
+                title,
+                duration_seconds: duration,
+                file_size: fileToUpload.size,
+                total_chunks: totalChunks,
+                mime_type: fileToUpload.type || 'video/mp4',
+                attach_to_lesson_id: attachLessonId,
+              },
             });
+            const uploadId = initRes.upload_id;
+
+            // Bước 2: Tải từng phân đoạn 512KB tuần tự (chống lỗi Cloudflare 413 hoàn toàn)
+            for (let i = 0; i < totalChunks; i++) {
+              const start = i * CHUNK_SIZE;
+              const end = Math.min(start + CHUNK_SIZE, fileToUpload.size);
+              const chunkBlob = fileToUpload.slice(start, end);
+              const chunkBuf = await chunkBlob.arrayBuffer();
+
+              let retries = 0;
+              while (retries < 3) {
+                try {
+                  const res = await fetch(`/api/v1/videos/upload/chunk?upload_id=${encodeURIComponent(uploadId)}&chunk_index=${i}`, {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${getToken()}`,
+                      'Content-Type': 'application/octet-stream',
+                    },
+                    body: chunkBuf,
+                  });
+                  if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || `HTTP ${res.status}`);
+                  }
+                  break;
+                } catch (e) {
+                  retries++;
+                  if (retries >= 3) throw e;
+                  await new Promise((r) => setTimeout(r, 400));
+                }
+              }
+
+              const pct = Math.round(((i + 1) / totalChunks) * 100);
+              slot.querySelector('#uv-prog').style.width = `${pct}%`;
+              statusText.textContent = `Đang tải lên phân đoạn: ${pct}% (${i + 1}/${totalChunks})...`;
+            }
+
+            // Bước 3: Hoàn tất phiên tải lên
+            statusText.textContent = 'Đang hoàn tất và đồng bộ video...';
+            await apiRequest('/api/v1/videos/upload/finish', {
+              method: 'POST',
+              body: { upload_id: uploadId },
+            });
+
             close();
-            showToast('Tải video lên thành công!', 'success');
+            showToast(attachLessonId ? 'Tải video lên và gắn vào bài giảng thành công!' : 'Tải video lên thành công!', 'success');
             draw();
           } catch (err) {
             showToast(err.message, 'error');

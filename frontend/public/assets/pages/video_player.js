@@ -77,8 +77,8 @@ export async function renderVideoPlayerPage(container, lessonIdParam = null) {
         <div class="video-stage">
           ${(() => {
             const key = lesson.storage_key || '';
-            const yt = key.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
-            const drive = key.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?\/\s]+)/i);
+            const yt = key.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+            const drive = key.match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([^"&?\/\s]+)/i);
             if (yt) {
               return `<iframe id="lms-yt-frame" src="https://www.youtube.com/embed/${yt[1]}?enablejsapi=1&rel=0"
                 style="width:100%;aspect-ratio:16/9;border:none;border-radius:12px;"

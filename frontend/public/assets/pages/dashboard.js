@@ -12,7 +12,7 @@ function renderGDriveQuotaCard(gdrive) {
       <span style="font-size:1.3rem;line-height:1;">💡</span>
       <div style="font-size:0.8rem;line-height:1.5;">
         <strong style="color:#F59E0B;">Lưu ý cách dùng đơn giản nhất cho Giáo viên:</strong>
-        Bạn <strong>chỉ cần tải video lên Google Drive</strong> cá nhân $\rightarrow$ Chuột phải chọn <em>"Chia sẻ" (Ai có liên kết đều xem được)</em> $\rightarrow$ <em>Sao chép link</em> dán vào bài giảng là phát được ngay!
+        Bạn <strong>chỉ cần tải video lên Google Drive</strong> cá nhân → Chuột phải chọn <em>"Chia sẻ" (Ai có liên kết đều xem được)</em> → <em>Sao chép link</em> dán vào bài giảng là phát được ngay!
         <div class="muted" style="margin-top:2px;font-size:0.75rem;">
           ⚙️ <em>Phần kết nối Google Drive API bên dưới là <strong>tùy chọn nâng cao dành cho Developer / Quản trị viên</strong> có hiểu biết kỹ thuật.</em>
         </div>

@@ -99,3 +99,28 @@ test('12 module manifests & Worker /api/health endpoint', async () => {
   assert.equal(body.status, 'ok');
   assert.match(body.runtime, /Cloudflare Workers/);
 });
+
+test('Video link parser correctly matches Google Drive (multi-user) and YouTube (Shorts, iframes)', () => {
+  const gdriveRegex = /drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([^"&?/\s]+)/i;
+  const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
+
+  // Google Drive standard
+  const m1 = 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view'.match(gdriveRegex);
+  assert.equal(m1[1], '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs');
+
+  // Google Drive multi-account /u/0/d/
+  const m2 = 'https://drive.google.com/file/u/0/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs/view?usp=sharing'.match(gdriveRegex);
+  assert.equal(m2[1], '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs');
+
+  // YouTube Shorts
+  const m3 = 'https://www.youtube.com/shorts/dQw4w9WgXcQ'.match(ytRegex);
+  assert.equal(m3[1], 'dQw4w9WgXcQ');
+
+  // YouTube standard watch
+  const m4 = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'.match(ytRegex);
+  assert.equal(m4[1], 'dQw4w9WgXcQ');
+
+  // YouTube youtu.be
+  const m5 = 'https://youtu.be/dQw4w9WgXcQ'.match(ytRegex);
+  assert.equal(m5[1], 'dQw4w9WgXcQ');
+});

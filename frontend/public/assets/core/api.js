@@ -32,7 +32,16 @@ export async function apiRequest(path, options = {}) {
   const contentType = res.headers.get('content-type') || '';
   const data = contentType.includes('application/json') ? await res.json() : await res.text();
   if (!res.ok) {
-    const message = (data && data.detail) || `HTTP ${res.status}`;
+    let message = (data && data.detail) || '';
+    if (!message) {
+      if (res.status === 413) {
+        message = 'Tệp quá lớn so với giới hạn tải lên trực tiếp (HTTP 413 Payload Too Large). Vui lòng dùng Tải lên phân đoạn hoặc gắn link Google Drive.';
+      } else if (res.status === 400) {
+        message = 'Yêu cầu không hợp lệ (HTTP 400). Vui lòng kiểm tra lại định dạng dữ liệu.';
+      } else {
+        message = `HTTP ${res.status}`;
+      }
+    }
     const err = new Error(message);
     err.status = res.status;
     throw err;
@@ -59,10 +68,18 @@ export function uploadWithProgress(url, formData, onProgress) {
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(parsed);
         } else {
-          reject(new Error(parsed.detail || `Upload failed (${xhr.status})`));
+          let msg = parsed.detail;
+          if (!msg && xhr.status === 413) {
+            msg = 'Tệp quá lớn so với giới hạn tải lên trực tiếp (HTTP 413 Payload Too Large). Vui lòng dùng Tải lên phân đoạn hoặc gắn link Google Drive.';
+          }
+          reject(new Error(msg || `Upload failed (${xhr.status})`));
         }
       } catch (e) {
-        reject(new Error('Phản hồi máy chủ không hợp lệ.'));
+        if (xhr.status === 413) {
+          reject(new Error('Tệp quá lớn so với giới hạn Cloudflare Workers (HTTP 413). Vui lòng dùng Tải lên phân đoạn hoặc gắn link Google Drive.'));
+        } else {
+          reject(new Error(`Phản hồi máy chủ không hợp lệ (HTTP ${xhr.status}).`));
+        }
       }
     };
     xhr.onerror = () => reject(new Error('Lỗi kết nối khi tải video lên.'));

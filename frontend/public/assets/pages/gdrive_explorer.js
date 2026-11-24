@@ -64,7 +64,7 @@ export async function renderGDriveExplorerPage(container, navigate, initialFolde
           </p>
           <div style="background:rgba(0,0,0,0.2);padding:10px 14px;border-radius:8px;font-size:0.8rem;line-height:1.5;">
             <strong style="color:var(--success);">💡 Cách đơn giản nhất cho Giáo viên & Người dùng:</strong><br/>
-            Bạn <strong>chỉ cần tải video lên Google Drive</strong> cá nhân $\rightarrow$ Chuột phải chọn <em>"Chia sẻ" (Ai có liên kết đều xem được)</em> $\rightarrow$ <em>Sao chép liên kết</em> $\rightarrow$ Sang <strong>Video Studio</strong> dán link vào là bài giảng tự động phát mượt mà! <strong>Hoàn toàn không cần làm các bước cài đặt API phức tạp!</strong>
+            Bạn <strong>chỉ cần tải video lên Google Drive</strong> cá nhân → Chuột phải chọn <em>"Chia sẻ" (Ai có liên kết đều xem được)</em> → <em>Sao chép liên kết</em> → Sang <strong>Video Studio</strong> dán link vào là bài giảng tự động phát mượt mà! <strong>Hoàn toàn không cần làm các bước cài đặt API phức tạp!</strong>
           </div>
         </div>
 
@@ -298,7 +298,7 @@ export async function renderGDriveExplorerPage(container, navigate, initialFolde
               </p>
               <div style="background:rgba(0,0,0,0.15);padding:10px 14px;border-radius:8px;font-size:0.8rem;line-height:1.5;">
                 <strong style="color:var(--success);">💡 Cách dùng chuẩn & nhanh nhất:</strong><br/>
-                Bạn <strong>chỉ cần tải video lên Google Drive $\rightarrow$ bật chia sẻ link $\rightarrow$ copy dán vào bài giảng</strong> ở Video Studio là xong ngay! Video sẽ phát trực tiếp qua CDN Google tốc độ cao mà không cần bất kỳ cài đặt nào.
+                Bạn <strong>chỉ cần tải video lên Google Drive → bật chia sẻ link → copy dán vào bài giảng</strong> ở Video Studio là xong ngay! Video sẽ phát trực tiếp qua CDN Google tốc độ cao mà không cần bất kỳ cài đặt nào.
               </div>
             </div>
           </div>

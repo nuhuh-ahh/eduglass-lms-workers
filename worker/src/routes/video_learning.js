@@ -35,10 +35,96 @@ export async function handleVideoLearningRoutes(request, env, path) {
     return jsonResponse({ videos: rows });
   }
 
+  // ── Chunked Upload API (Bypasses Cloudflare 100MB limit & prevents HTTP 413) ──
+  if (path === '/api/v1/videos/upload/init' && method === 'POST') {
+    const roleErr = requireRoles(user, ['teacher', 'school_admin', 'super_admin']);
+    if (roleErr) return roleErr;
+    const body = await parseJsonBody(request);
+    const filename = sanitizeText(body.filename || 'video.mp4');
+    const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
+    if (!ALLOWED_EXT.includes(ext)) {
+      return errorResponse('Chỉ hỗ trợ định dạng MP4, WebM, OGV.', 400);
+    }
+    const vid = generateId('vid');
+    const storageKey = `videos/${vid}${ext}`;
+    const title = sanitizeText(body.title || filename.replace(/\.[^.]+$/, ''));
+    const duration = Math.max(1, Number(body.duration_seconds || 120));
+    const fileSize = Math.max(0, Number(body.file_size || 0));
+    const provider = env.VIDEO_BUCKET ? 'r2' : 'd1';
+
+    await env.DB.prepare(
+      `INSERT INTO videos (id, uploader_id, title, original_filename, storage_provider, storage_key, mime_type, file_size_bytes, duration_seconds, processing_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'uploading')`
+    ).bind(vid, user.id, title, filename, provider, storageKey, body.mime_type || 'video/mp4', fileSize, duration).run();
+
+    if (body.attach_to_lesson_id) {
+      await env.DB.prepare('UPDATE lessons SET video_id = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(vid, body.attach_to_lesson_id).run();
+    }
+
+    return jsonResponse({ upload_id: vid, video_id: vid }, 201);
+  }
+
+  if (path === '/api/v1/videos/upload/chunk' && method === 'POST') {
+    const roleErr = requireRoles(user, ['teacher', 'school_admin', 'super_admin']);
+    if (roleErr) return roleErr;
+
+    let uploadId = '';
+    let chunkIndex = 0;
+    let chunkData = null;
+
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const form = await request.formData();
+      uploadId = form.get('upload_id');
+      chunkIndex = parseInt(form.get('chunk_index'), 10) || 0;
+      const chunkFile = form.get('chunk');
+      if (chunkFile && typeof chunkFile.arrayBuffer === 'function') {
+        chunkData = await chunkFile.arrayBuffer();
+      }
+    } else {
+      const urlObj = new URL(request.url);
+      uploadId = urlObj.searchParams.get('upload_id') || request.headers.get('X-Upload-Id');
+      chunkIndex = parseInt(urlObj.searchParams.get('chunk_index') || request.headers.get('X-Chunk-Index') || '0', 10);
+      chunkData = await request.arrayBuffer();
+    }
+
+    if (!uploadId || !chunkData || chunkData.byteLength === 0) {
+      return errorResponse('Thiếu dữ liệu phân đoạn hoặc upload_id.', 400);
+    }
+
+    const chkId = `${uploadId}_${chunkIndex}`;
+    await env.DB.prepare(
+      'INSERT OR REPLACE INTO video_chunks (id, video_id, chunk_index, data) VALUES (?, ?, ?, ?)'
+    ).bind(chkId, uploadId, chunkIndex, new Uint8Array(chunkData)).run();
+
+    return jsonResponse({ success: true, chunk_index: chunkIndex });
+  }
+
+  if (path === '/api/v1/videos/upload/finish' && method === 'POST') {
+    const roleErr = requireRoles(user, ['teacher', 'school_admin', 'super_admin']);
+    if (roleErr) return roleErr;
+    const body = await parseJsonBody(request);
+    const uploadId = body.upload_id;
+    if (!uploadId) return errorResponse('Thiếu upload_id.', 400);
+
+    await env.DB.prepare(
+      `UPDATE videos SET processing_status = 'ready', updated_at = datetime('now') WHERE id = ?`
+    ).bind(uploadId).run();
+    await writeAuditLog(env, 'video.upload', 'video', uploadId, user.id);
+    const video = await env.DB.prepare('SELECT * FROM videos WHERE id = ?').bind(uploadId).first();
+    return jsonResponse({ video });
+  }
+
+  // ── Standard Direct Upload ──
   if (path === '/api/v1/videos/upload' && method === 'POST') {
     const roleErr = requireRoles(user, ['teacher', 'school_admin', 'super_admin']);
     if (roleErr) return roleErr;
-    const form = await request.formData();
+    let form;
+    try {
+      form = await request.formData();
+    } catch {
+      return errorResponse('Không thể đọc dữ liệu tải lên. Nếu file lớn hơn 100MB, vui lòng dùng Tải lên phân đoạn.', 413);
+    }
     const file = form.get('file');
     if (!file || typeof file.arrayBuffer !== 'function') {
       return errorResponse('Thiếu tệp video.', 400);
@@ -69,18 +155,11 @@ export async function handleVideoLearningRoutes(request, env, path) {
       const CHUNK_SIZE = 512 * 1024;
       const totalBytes = buf.byteLength;
       const numChunks = Math.ceil(totalBytes / CHUNK_SIZE);
-      const stmts = [];
       for (let i = 0; i < numChunks; i++) {
         const slice = buf.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-        stmts.push(
-          env.DB.prepare(
-            'INSERT INTO video_chunks (id, video_id, chunk_index, data) VALUES (?, ?, ?, ?)'
-          ).bind(generateId('chk'), vid, i, new Uint8Array(slice))
-        );
-      }
-      // Execute in batches of 25
-      for (let b = 0; b < stmts.length; b += 25) {
-        await env.DB.batch(stmts.slice(b, b + 25));
+        await env.DB.prepare(
+          'INSERT OR REPLACE INTO video_chunks (id, video_id, chunk_index, data) VALUES (?, ?, ?, ?)'
+        ).bind(`${vid}_${i}`, vid, i, new Uint8Array(slice)).run();
       }
     }
 
@@ -95,21 +174,62 @@ export async function handleVideoLearningRoutes(request, env, path) {
     return jsonResponse({ video }, 201);
   }
 
+  // ── Videos by Link (Google Drive / YouTube / Direct MP4) ──
   if (path === '/api/v1/videos/link' && method === 'POST') {
     const roleErr = requireRoles(user, ['teacher', 'school_admin', 'super_admin']);
     if (roleErr) return roleErr;
     const body = await parseJsonBody(request);
-    const url = (body.url || '').trim();
-    if (!url || !/^https?:\/\//i.test(url)) {
+    let rawUrl = (body.url || '').trim();
+
+    // 1. Extract src if user pasted iframe embed code
+    const iframeSrc = rawUrl.match(/src=["']([^"']+)["']/i);
+    if (iframeSrc) {
+      rawUrl = iframeSrc[1].trim();
+    }
+    // 2. Strip surrounding quotes, angle brackets, whitespace
+    rawUrl = rawUrl.replace(/^[<"']+|[>"']+$/g, '').trim();
+
+    // 3. Auto-prepend https:// if user omitted protocol
+    if (!/^https?:\/\//i.test(rawUrl)) {
+      if (/^(drive\.google\.com|youtu\.be|www\.youtube\.com|youtube\.com)/i.test(rawUrl) || rawUrl.includes('/')) {
+        rawUrl = 'https://' + rawUrl;
+      }
+    }
+
+    if (!rawUrl || !/^https?:\/\//i.test(rawUrl)) {
       return errorResponse('Vui lòng nhập đường dẫn URL hợp lệ (bắt đầu bằng http:// hoặc https://).', 400);
     }
+
+    // 4. Check if user accidentally pasted a Google Drive folder URL
+    if (rawUrl.includes('/drive/folders/')) {
+      return errorResponse('Đây là đường dẫn Thư mục Google Drive. Vui lòng mở video bên trong thư mục, chuột phải chọn "Chia sẻ" > "Sao chép liên kết" để lấy link video!', 400);
+    }
+
     const vid = generateId('vid');
-    const title = sanitizeText(body.title || 'Video từ liên kết');
+    let title = sanitizeText(body.title || '').trim();
+    if (!title) {
+      const ytMatch = rawUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+      const driveMatch = rawUrl.match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([^"&?\/\s]+)/i);
+      if (ytMatch) {
+        title = `Video YouTube (${ytMatch[1]})`;
+      } else if (driveMatch) {
+        title = `Video Google Drive (${driveMatch[1].slice(0, 8)}...)`;
+      } else {
+        const urlFilename = rawUrl.split('/').pop().split('?')[0];
+        title = sanitizeText(urlFilename || 'Video từ liên kết');
+      }
+    }
+
     const duration = Math.max(1, Number(body.duration_seconds || 120));
     await env.DB.prepare(
       `INSERT INTO videos (id, uploader_id, title, original_filename, storage_provider, storage_key, mime_type, file_size_bytes, duration_seconds, processing_status)
        VALUES (?, ?, ?, ?, 'url', ?, 'video/mp4', 0, ?, 'ready')`
-    ).bind(vid, user.id, title, url, url, duration).run();
+    ).bind(vid, user.id, title, rawUrl, rawUrl, duration).run();
+
+    if (body.attach_to_lesson_id) {
+      await env.DB.prepare('UPDATE lessons SET video_id = ?, updated_at = datetime(\'now\') WHERE id = ?').bind(vid, body.attach_to_lesson_id).run();
+    }
+
     await writeAuditLog(env, 'video.link', 'video', vid, user.id);
     const video = await env.DB.prepare('SELECT * FROM videos WHERE id = ?').bind(vid).first();
     return jsonResponse({ video }, 201);
@@ -122,7 +242,7 @@ export async function handleVideoLearningRoutes(request, env, path) {
 
     if (vid.storage_provider === 'url' || vid.storage_provider === 'external') {
       const url = vid.storage_key;
-      const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([^"&?/\s]+)/i);
+      const driveMatch = url.match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([^"&?/\s]+)/i);
       if (driveMatch) {
         return Response.redirect(`https://drive.google.com/uc?export=download&id=${driveMatch[1]}`, 302);
       }

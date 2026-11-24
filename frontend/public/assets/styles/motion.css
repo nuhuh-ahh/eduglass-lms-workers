@@ -16,18 +16,17 @@
 }
 
 @keyframes pageEnter {
-  0%   { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.982); filter: blur(6px); }
-  60%  { filter: blur(0); }
-  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+  0%   { opacity: 0; transform: translate3d(0, 6px, 0) scale(0.995); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes cardStaggerIn {
-  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.975); }
+  from { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.988); }
   to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @keyframes modalPop {
-  from { opacity: 0; transform: scale(0.92) translate3d(0, 18px, 0); }
+  from { opacity: 0; transform: scale(0.95) translate3d(0, 10px, 0); }
   to   { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
 }
 
@@ -37,8 +36,8 @@
 }
 
 @keyframes toastBounce {
-  0%   { opacity: 0; transform: translate3d(32px, 0, 0) scale(0.94); }
-  70%  { opacity: 1; transform: translate3d(-4px, 0, 0) scale(1.01); }
+  0%   { opacity: 0; transform: translate3d(24px, 0, 0) scale(0.96); }
+  70%  { opacity: 1; transform: translate3d(-2px, 0, 0) scale(1.005); }
   100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
@@ -59,22 +58,22 @@
 }
 
 .page-enter {
-  animation: pageEnter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform, opacity, filter;
+  animation: pageEnter 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
 }
 
 .grid-kpi > .card,
 .grid-2 > .card,
 .grid-3 > .card {
-  animation: cardStaggerIn 420ms var(--ease-spring) both;
+  animation: cardStaggerIn 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.grid-kpi > .card:nth-child(1), .grid-3 > .card:nth-child(1) { animation-delay: 25ms; }
-.grid-kpi > .card:nth-child(2), .grid-3 > .card:nth-child(2) { animation-delay: 60ms; }
-.grid-kpi > .card:nth-child(3), .grid-3 > .card:nth-child(3) { animation-delay: 95ms; }
-.grid-kpi > .card:nth-child(4), .grid-3 > .card:nth-child(4) { animation-delay: 130ms; }
-.grid-kpi > .card:nth-child(5), .grid-3 > .card:nth-child(5) { animation-delay: 165ms; }
-.grid-kpi > .card:nth-child(6), .grid-3 > .card:nth-child(6) { animation-delay: 200ms; }
+.grid-kpi > .card:nth-child(1), .grid-3 > .card:nth-child(1) { animation-delay: 15ms; }
+.grid-kpi > .card:nth-child(2), .grid-3 > .card:nth-child(2) { animation-delay: 35ms; }
+.grid-kpi > .card:nth-child(3), .grid-3 > .card:nth-child(3) { animation-delay: 55ms; }
+.grid-kpi > .card:nth-child(4), .grid-3 > .card:nth-child(4) { animation-delay: 75ms; }
+.grid-kpi > .card:nth-child(5), .grid-3 > .card:nth-child(5) { animation-delay: 95ms; }
+.grid-kpi > .card:nth-child(6), .grid-3 > .card:nth-child(6) { animation-delay: 115ms; }
 
 .modal-backdrop {
   animation: backdropFade 200ms ease both;
